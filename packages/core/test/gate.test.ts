@@ -75,9 +75,10 @@ describe("challenge", () => {
 
     const body = result.body as ChallengeBody;
     expect(body.x402Version).toBe(1);
-    // Spec-shaped string for the agent's x402 client…
-    expect(body.error).toBe("payment_required");
-    // …and the §10 envelope alongside it, not instead of it.
+    // `error` is an optional closed enum in x402, and a first contact is not
+    // one of its reasons — so it is omitted rather than filled with our code.
+    expect(body.error).toBeUndefined();
+    // The §10 envelope rides alongside, never instead of, the spec fields.
     expect(body.errorDetail).toEqual({
       code: "payment_required",
       message: "This route costs 0.004000 USDC.",

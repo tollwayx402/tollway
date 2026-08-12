@@ -63,6 +63,13 @@ export interface GateOptions {
   merchant?: string | null;
   /** Route label when the adapter cannot supply one per request. */
   route?: string;
+  /**
+   * Origin used to absolutize the x402 `resource` when the adapter cannot give
+   * a full URL (e.g. `https://api.example.com`). x402 requires an absolute URL
+   * there, so without this a path-only request is a hard error rather than a
+   * challenge the agent's client will reject.
+   */
+  resourceBase?: string;
   description?: string;
   mimeType?: string;
   /** Challenge lifetime, seconds. Default 120. */
@@ -106,6 +113,17 @@ export interface GateHalt {
 
 export type GateResult = GatePass | GateHalt;
 
+/** Everything the pipeline resolves once per request, then passes around. */
+interface RequestContext {
+  req: GateRequest;
+  route: string;
+  /** Absolute URL for the x402 `resource` field. */
+  resource: string;
+  /** Price in atomic units. */
+  amount: bigint;
+  startedAt: number;
+}
+
 const JSON_HEADERS: Record<string, string> = {
   "content-type": "application/json; charset=utf-8",
   "cache-control": "no-store",
@@ -135,6 +153,7 @@ export class Gate {
   readonly #clock: () => number;
   readonly #newNonce: () => string;
   readonly #newId: (prefix: string) => string;
+  readonly #resourceBase: string | undefined;
   #signer: Signer | Promise<Signer> | undefined;
 
   constructor(options: GateOptions) {
@@ -169,6 +188,13 @@ export class Gate {
       throw new TollwayConfigError("`payTo` is required — the SDK never holds funds (§1.4)");
     }
     this.#payTo = options.payTo;
+
+    if (options.resourceBase !== undefined && !isAbsoluteUrl(options.resourceBase)) {
+      throw new TollwayConfigError(
+        `resourceBase must be an absolute URL, got "${options.resourceBase}"`,
+      );
+    }
+    this.#resourceBase = options.resourceBase;
 
     this.mode = options.mode ?? "fail_closed";
     if (this.mode !== "fail_closed" && this.mode !== "fail_open") {
@@ -235,9 +261,37 @@ export class Gate {
       };
     }
 
+    // x402 requires an absolute URL for `resource`. Failing loudly here beats
+    // shipping a challenge the agent's client library will reject — that error
+    // surfaces in someone else's process, where we cannot see it.
+    let resource: string;
+    try {
+      resource = this.#resolveResource(req, route);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.events.emit("gate.error", route, {
+        code: "invalid_resource",
+        message,
+        mode: "fail_closed",
+      });
+      this.#logger.error("tollway: could not build an absolute resource URL", {
+        route,
+        error: message,
+      });
+      return {
+        type: "error",
+        status: 500,
+        headers: { ...JSON_HEADERS },
+        body: errorBody("invalid_resource", message),
+        code: "invalid_resource",
+      };
+    }
+
+    const ctx: RequestContext = { req, route, resource, amount, startedAt };
+
     const header = getHeader(req.headers, PAYMENT_HEADER);
     if (header === undefined) {
-      return this.#issueChallenge(req, route, amount);
+      return this.#issueChallenge(ctx);
     }
 
     let payment: PaymentPayload;
@@ -245,10 +299,10 @@ export class Gate {
       payment = decodePaymentHeader(header);
     } catch (error) {
       const message = error instanceof PaymentDecodeError ? error.message : "Malformed payment.";
-      return this.#reject(req, route, amount, "invalid_payment", message);
+      return this.#reject(ctx, "invalid_payment", message);
     }
 
-    return this.#verifyAndPass(req, route, amount, payment, startedAt);
+    return this.#verifyAndPass(ctx, payment);
   }
 
   /** Await queued event delivery. For tests and graceful shutdown. */
@@ -263,8 +317,9 @@ export class Gate {
 
   // --- challenge ----------------------------------------------------------
 
-  #issueChallenge(req: GateRequest, route: string, amount: bigint): GateHalt {
-    const built = this.#buildAccepts(req, route, amount);
+  #issueChallenge(ctx: RequestContext): GateHalt {
+    const { route, amount } = ctx;
+    const built = this.#buildAccepts(ctx);
     if (built === undefined) {
       return {
         type: "error",
@@ -297,11 +352,10 @@ export class Gate {
   }
 
   #buildAccepts(
-    req: GateRequest,
-    route: string,
-    amount: bigint,
+    ctx: RequestContext,
     nonce = this.#newNonce(),
   ): { accepts: ChallengeScheme[]; requirements: Map<Network, ChallengeRequest>; nonce: string; expiresAt: number } | undefined {
+    const { req, route, amount, resource } = ctx;
     const expiresAt = Math.floor(this.#clock() / 1_000) + this.#expirySeconds;
     const accepts: ChallengeScheme[] = [];
     const requirements = new Map<Network, ChallengeRequest>();
@@ -311,7 +365,7 @@ export class Gate {
       if (!adapter) continue;
       const requirement: ChallengeRequest = {
         route,
-        resource: req.url ?? req.path ?? route,
+        resource,
         description: this.#options.description ?? `Access to ${route}`,
         mimeType: this.#options.mimeType ?? "application/json",
         network,
@@ -342,33 +396,24 @@ export class Gate {
 
   // --- verify -------------------------------------------------------------
 
-  async #verifyAndPass(
-    req: GateRequest,
-    route: string,
-    amount: bigint,
-    payment: PaymentPayload,
-    startedAt: number,
-  ): Promise<GateResult> {
+  async #verifyAndPass(ctx: RequestContext, payment: PaymentPayload): Promise<GateResult> {
+    const { route, amount } = ctx;
     if (!this.networks.includes(payment.network)) {
-      return this.#reject(
-        req,
-        route,
-        amount,
-        "wrong_network",
+      return this.#reject(ctx, "wrong_network",
         `This route accepts ${this.networks.join(", ")}, payment was on "${payment.network}".`,
       );
     }
 
     const adapter = adapterForNetwork(this.#adapters, payment.network);
     if (!adapter) {
-      return this.#reject(req, route, amount, "wrong_network", rejectMessage("wrong_network"));
+      return this.#reject(ctx, "wrong_network", rejectMessage("wrong_network"));
     }
 
     // Rebuild the requirements for the paid network. They are a pure function
     // of (route, price, payTo, expiry), so they reconstruct exactly — except
     // the nonce, which we re-bind to whatever the payer echoed.
     const echoedNonce = readNonce(payment);
-    const built = this.#buildAccepts(req, route, amount, echoedNonce ?? this.#newNonce());
+    const built = this.#buildAccepts(ctx, echoedNonce ?? this.#newNonce());
     const requirement = built?.requirements.get(payment.network);
     const scheme = built?.accepts.find((entry) => entry.network === payment.network);
     if (!built || !requirement || !scheme) {
@@ -389,12 +434,12 @@ export class Gate {
     const nowMs = this.#clock();
     const expiry = payloadExpiry(payment);
     if (expiry !== undefined && expiry * 1_000 <= nowMs) {
-      return this.#reject(req, route, amount, "expired", rejectMessage("expired"));
+      return this.#reject(ctx, "expired", rejectMessage("expired"));
     }
 
     const replayKey = await paymentReplayKey(payment);
     if (await this.#nonces.has(replayKey)) {
-      return this.#reject(req, route, amount, "replay", rejectMessage("replay"));
+      return this.#reject(ctx, "replay", rejectMessage("replay"));
     }
 
     let result: VerifyResult;
@@ -407,15 +452,11 @@ export class Gate {
         logger: this.#logger,
       });
     } catch (error) {
-      return this.#facilitatorDown(route, adapter, error, startedAt);
+      return this.#facilitatorDown(route, adapter, error, ctx.startedAt);
     }
 
     if (!result.ok) {
-      return this.#reject(
-        req,
-        route,
-        amount,
-        result.code,
+      return this.#reject(ctx, result.code,
         result.message ?? rejectMessage(result.code),
         adapter.id,
       );
@@ -423,11 +464,7 @@ export class Gate {
 
     const settled = toBigInt(result.settledAmount);
     if (settled === undefined || settled < amount) {
-      return this.#reject(
-        req,
-        route,
-        amount,
-        "wrong_amount",
+      return this.#reject(ctx, "wrong_amount",
         `Route costs ${amount.toString()} atomic units, settled ${String(result.settledAmount)}.`,
         adapter.id,
       );
@@ -436,17 +473,17 @@ export class Gate {
     // Consume last: a payload that failed verification stays retriable, one
     // that succeeded is burned for both its own hash and its on-chain ref.
     if (!(await this.#nonces.consume(replayKey, this.#replayTtlMs))) {
-      return this.#reject(req, route, amount, "replay", rejectMessage("replay"), adapter.id);
+      return this.#reject(ctx, "replay", rejectMessage("replay"), adapter.id);
     }
     const txKey = `tx:${payment.network}:${result.txRef}`;
     if (!(await this.#nonces.consume(txKey, this.#replayTtlMs))) {
-      return this.#reject(req, route, amount, "replay", rejectMessage("replay"), adapter.id);
+      return this.#reject(ctx, "replay", rejectMessage("replay"), adapter.id);
     }
 
     const receipt = await this.#mintReceipt(route, payment.network, settled, result);
     this.events.emit("toll.settled", route, { receipt });
 
-    return this.#pass(route, receipt, startedAt);
+    return this.#pass(route, receipt, ctx.startedAt);
   }
 
   async #verifyWithTimeout(
@@ -511,13 +548,12 @@ export class Gate {
   }
 
   #reject(
-    req: GateRequest,
-    route: string,
-    amount: bigint,
+    ctx: RequestContext,
     code: RejectCode,
     message: string,
     facilitator?: string,
   ): GateHalt {
+    const { route } = ctx;
     this.events.emit("toll.rejected", route, {
       code,
       message,
@@ -526,7 +562,7 @@ export class Gate {
 
     // Re-advertise so the agent can retry immediately. This is not counted as
     // a new `challenge.issued` — see PROTOCOL.md "Event accounting".
-    const built = this.#buildAccepts(req, route, amount);
+    const built = this.#buildAccepts(ctx);
     return {
       type: "reject",
       status: 402,
@@ -595,6 +631,23 @@ export class Gate {
     return signReceipt(unsigned, await this.#resolveSigner());
   }
 
+  /**
+   * x402 `resource` must be an absolute URL. Adapters that know their origin
+   * pass `req.url`; everyone else configures `resourceBase`. A bare path is an
+   * error here rather than an invalid challenge on the wire.
+   */
+  #resolveResource(req: GateRequest, route: string): string {
+    const candidate = req.url ?? req.path ?? route;
+    if (isAbsoluteUrl(candidate)) return candidate;
+    if (this.#resourceBase !== undefined) {
+      return new URL(candidate, this.#resourceBase).toString();
+    }
+    throw new TollwayConfigError(
+      `x402 requires an absolute URL for \`resource\`, but this request only supplied "${candidate}". ` +
+        "Pass `req.url` from the adapter, or set `resourceBase` on the gate.",
+    );
+  }
+
   async #resolveSigner(): Promise<Signer> {
     if (this.#signer === undefined) this.#signer = createEphemeralSigner();
     const signer = await this.#signer;
@@ -631,6 +684,15 @@ function readNonce(payment: PaymentPayload): string | undefined {
     if (typeof nested === "string" && nested.length > 0) return nested;
   }
   return undefined;
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function toBigInt(value: bigint | string): bigint | undefined {

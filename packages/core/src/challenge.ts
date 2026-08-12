@@ -24,8 +24,34 @@ export const RECEIPT_HEADER = "x-tollway-receipt";
 export interface ChallengeBody {
   x402Version: number;
   accepts: ChallengeScheme[];
-  error: string;
+  /** Omitted when no x402 reason applies — the field is optional in the spec. */
+  error?: string;
   errorDetail: ErrorBody["error"];
+}
+
+/**
+ * x402 types `error` as an **optional closed enum** of reasons, not as free
+ * text. Emitting our own code there fails `x402ResponseSchema.parse` in the
+ * reference client, so we map onto the enum and keep our real code in
+ * `errorDetail`.
+ *
+ * Verified against `x402@1.2.0` by `test/interop.test.ts`. When a Tollway code
+ * has no enum equivalent — including `payment_required`, which is a first
+ * contact rather than an error — the field is omitted.
+ */
+export const X402_ERROR_REASONS: Readonly<Record<string, string>> = {
+  invalid_payment: "invalid_payment",
+  expired: "payment_expired",
+  wrong_network: "invalid_network",
+  // No generic "underpaid" reason exists; the value-level reasons in the enum
+  // are chain-specific, so this stays generic and errorDetail.code carries the
+  // precise meaning.
+  wrong_amount: "invalid_payment",
+  replay: "duplicate_settlement",
+};
+
+export function x402ErrorReason(code: string): string | undefined {
+  return X402_ERROR_REASONS[code];
 }
 
 export function buildChallengeBody(
@@ -33,10 +59,11 @@ export function buildChallengeBody(
   code: string,
   message: string,
 ): ChallengeBody {
+  const reason = x402ErrorReason(code);
   return {
     x402Version: X402_VERSION,
     accepts,
-    error: code,
+    ...(reason === undefined ? {} : { error: reason }),
     errorDetail: errorBody(code, message).error,
   };
 }

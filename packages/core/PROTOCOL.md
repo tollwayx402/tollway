@@ -42,13 +42,18 @@ requirements (amount, `payTo`, nonce, expiry) and the adapter decides how to
 express them on its network. With several networks configured, one entry per
 network is advertised in configured order (§5).
 
+**`resource` must be an absolute URL.** x402 validates it as one, so a bare path
+produces a challenge the agent's client rejects. Adapters pass `req.url`;
+merchants whose adapter cannot supply an origin set `resourceBase`. When neither
+yields an absolute URL, core returns `500 invalid_resource` and emits
+`gate.error` rather than putting an unusable challenge on the wire.
+
 ### `error` is a superset, not a replacement
 
-x402 defines `error` as a string, and §10 of the SDK spec requires every 4xx/5xx
-body to carry `{ code, message, doc }`. Both are satisfied:
+x402 defines `error`, and §10 of the SDK spec requires every 4xx/5xx body to
+carry `{ code, message, doc }`. Both are satisfied:
 
-- **`error`** keeps the spec's name and type. Its value is the machine code
-  (`payment_required`, `invalid_payment`, `replay`, …), not prose.
+- **`error`** keeps the spec's name and type.
 - **`errorDetail`** carries the §10 envelope for humans and merchant tooling.
 
 The reasoning: the party parsing a 402 body is the *agent's* client library, not
@@ -59,13 +64,39 @@ with the envelope under `error`.
 
 Use `readErrorDetail(body)` rather than reaching for either key directly.
 
-**Open interop question for step 2.** Whether the reference x402 client treats
-`error` as a code or as display prose is unverified. The Base Sepolia e2e must
-include an interop test in which the official client walks the full
-402 → pay → 200 flow against our challenge *and* our rejection bodies. Signing a
-payment needs no funds, so this test belongs in CI, not the manual testnet job.
-If the client turns out to expect prose, the fix is `error` prose +
-`errorDetail.code` — not another bespoke shape.
+#### `error` is a closed enum, not free text
+
+Verified against `x402@1.2.0` (`test/interop.test.ts`, run in CI):
+`x402ResponseSchema` types `error` as an **optional enum of fixed reasons**. Our
+own codes fail `parse` outright. So core maps onto the enum and keeps the
+precise code in `errorDetail.code`:
+
+| Tollway code | x402 `error` | Note |
+| --- | --- | --- |
+| `payment_required` | *omitted* | a first contact is not one of the enum's reasons |
+| `invalid_payment` | `invalid_payment` | |
+| `expired` | `payment_expired` | |
+| `wrong_network` | `invalid_network` | |
+| `wrong_amount` | `invalid_payment` | no generic underpayment reason exists; the value-level ones are chain-specific |
+| `replay` | `duplicate_settlement` | exact match |
+
+`network` is a closed enum client-side too. A custom network id does not merely
+go unrecognised — it makes the whole `accepts` entry unparseable for the agent.
+
+#### What the reference client actually reads
+
+`x402-fetch@1.2.0` destructures `{ x402Version, accepts }` and **ignores
+`error`**, then `PaymentRequirementsSchema.parse`s every `accepts` entry. Two
+consequences:
+
+- The `accepts` entries are the load-bearing part. An invalid one fails the
+  agent's payment attempt outright.
+- It retries **once** (`__is402Retry`), then throws "Payment already attempted".
+  Re-advertising `accepts` on a rejection is still right for other clients, but
+  do not assume an agent will act on it.
+
+Still open for the live testnet run: whether CDP's own facilitator surfaces
+reasons we should map more precisely than `invalid_payment`.
 
 ## 2. Payment
 

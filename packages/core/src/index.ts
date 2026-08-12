@@ -8,6 +8,8 @@ export type { GateOptions, GateResult, GatePass, GateHalt } from "./gate.js";
 
 export {
   X402_VERSION,
+  X402_ERROR_REASONS,
+  x402ErrorReason,
   PAYMENT_HEADER,
   RECEIPT_HEADER,
   PaymentDecodeError,
