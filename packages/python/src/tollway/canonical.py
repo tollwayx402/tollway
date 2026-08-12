@@ -71,10 +71,15 @@ def _write(value: Any, seen: Set[int]) -> str:
             raise CanonicalJsonError("circular reference")
         seen.add(id(value))
         try:
+            for key in value.keys():
+                if not isinstance(key, str):
+                    # Checked before sorted(): mixed-type keys make sorted()
+                    # raise a bare TypeError, which is not this module's error.
+                    raise CanonicalJsonError(
+                        f"object keys must be strings, got {type(key).__name__}"
+                    )
             items = []
             for key in sorted(value.keys()):
-                if not isinstance(key, str):
-                    raise CanonicalJsonError(f"object keys must be strings, got {type(key).__name__}")
                 item = value[key]
                 # A key explicitly set to None survives as null (JS keeps null
                 # too); only absent keys are absent.

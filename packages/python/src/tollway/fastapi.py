@@ -14,7 +14,7 @@ outcome — the same three-step adapter contract as Express and Hono.
 from __future__ import annotations
 
 import time
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Optional, Sequence, Union
 
 from fastapi import Depends, Request, Response
 from fastapi.responses import JSONResponse
@@ -54,7 +54,6 @@ class Tollway:
         self._network = network
         self._facilitator = facilitator
         self._defaults = defaults
-        self._gates: Dict[str, Gate] = {}
 
         if api_key is not None:
             # The cloud client is a separate, differently licensed package.
@@ -78,6 +77,9 @@ class Tollway:
 
         async def dependency(request: Request) -> None:
             label = route or _route_label(request)
+            # Stashed before handle(), so the halt renderer can flush events in
+            # the background — never inline on the payer's request path (§7).
+            request.state.tollway_gate = gate
             result = await gate.handle(
                 GateRequest(
                     method=request.method,
@@ -91,12 +93,10 @@ class Tollway:
             )
 
             if not result.is_pass:
-                await gate.flush_events()
                 raise TollwayHalt(result)
 
             # Stash on the request so the response hook can finish the job.
             request.state.tollway_result = result
-            request.state.tollway_gate = gate
             request.state.tollway_started = time.time() * 1000
 
         return Depends(dependency)
@@ -111,12 +111,17 @@ class Tollway:
         """
 
         @app.exception_handler(TollwayHalt)
-        async def _render_halt(_request: Request, exc: TollwayHalt) -> Response:  # noqa: ANN202
-            return JSONResponse(
+        async def _render_halt(request: Request, exc: TollwayHalt) -> Response:  # noqa: ANN202
+            response = JSONResponse(
                 status_code=exc.result.status,
                 content=exc.result.body,
                 headers=exc.result.headers,
             )
+            gate: Optional[Gate] = getattr(request.state, "tollway_gate", None)
+            if gate is not None:
+                # Event delivery happens after the response is sent (§7).
+                response.background = BackgroundTask(gate.flush_events)
+            return response
 
         @app.middleware("http")
         async def _report_outcome(request: Request, call_next: Callable[..., Any]) -> Response:
@@ -174,10 +179,9 @@ def _route_label(request: Request) -> str:
 
 def gate_dependency(gate: Gate, route: Optional[str] = None) -> Any:
     """Escape hatch: gate a route with a Gate you built yourself."""
-    tollway = Tollway.__new__(Tollway)
-    tollway._gates = {}  # type: ignore[attr-defined]
 
     async def dependency(request: Request) -> None:
+        request.state.tollway_gate = gate
         result = await gate.handle(
             GateRequest(
                 method=request.method,
@@ -189,10 +193,8 @@ def gate_dependency(gate: Gate, route: Optional[str] = None) -> Any:
             )
         )
         if not result.is_pass:
-            await gate.flush_events()
             raise TollwayHalt(result)
         request.state.tollway_result = result
-        request.state.tollway_gate = gate
         request.state.tollway_started = time.time() * 1000
 
     return Depends(dependency)

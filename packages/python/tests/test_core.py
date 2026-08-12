@@ -209,6 +209,20 @@ class TestPaymentDecoding:
 
         assert decode_payment_header(_json.dumps(payment))["network"] == "base-sepolia"
 
+    def test_accepts_url_safe_base64_like_typescript(self):
+        import base64, json as _json
+
+        payment = mock_payment()
+        raw = _json.dumps(payment).encode()
+        url_safe = base64.urlsafe_b64encode(raw).decode().rstrip("=")
+        assert decode_payment_header(url_safe)["scheme"] == "exact"
+
+    def test_non_string_keys_are_this_modules_error(self):
+        with pytest.raises(CanonicalJsonError, match="keys must be strings"):
+            canonical_json({1: "x"})
+        with pytest.raises(CanonicalJsonError, match="keys must be strings"):
+            canonical_json({"a": 1, 2: "mixed"})
+
     def test_rejects_malformed_headers(self):
         from tollway import PaymentDecodeError
 

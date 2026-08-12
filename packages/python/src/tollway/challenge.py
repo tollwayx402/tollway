@@ -75,7 +75,12 @@ def decode_payment_header(value: str) -> Dict[str, Any]:
         raw = trimmed
     else:
         try:
-            padded = trimmed + "=" * (-len(trimmed) % 4)
+            # The TS decoder accepts both the standard and URL-safe alphabets;
+            # match it exactly so the two implementations accept and reject
+            # identical inputs. (The reference client itself sends standard
+            # base64 — this is parity, not necessity.)
+            normalized = trimmed.replace("-", "+").replace("_", "/")
+            padded = normalized + "=" * (-len(normalized) % 4)
             raw = base64.b64decode(padded, validate=True).decode("utf-8")
         except (binascii.Error, UnicodeDecodeError, ValueError):
             raise PaymentDecodeError("payment header is not valid base64 JSON") from None
