@@ -12,8 +12,8 @@ Build order is `specs/sdk.md` §12.
 | 1 | `packages/core` — challenge, verify pipeline, events, receipts, nonce cache | **done** |
 | 2 | `packages/coinbase` + Base Sepolia e2e ← first demo | **done**, live run pending credentials |
 | 3 | `packages/express` + `packages/gate` (`doctor`) + examples | **done** |
-| 4 | `ingest` client + cloud ingest + dashboard v1 | next |
-| 5 | `hono`, then Python core + FastAPI | |
+| 4 | `packages/ingest` + `services/ingest` + dashboard v1 | **done** |
+| 5 | `hono`, then Python core + FastAPI | next |
 | 6 | `payai` adapter (Solana), multi-network challenges | |
 
 The reference `x402-fetch` client pays a Tollway gate end to end in CI, with no
@@ -32,10 +32,16 @@ packages/core/      protocol logic, framework-agnostic   (MIT)
 packages/coinbase/  CDP facilitator adapter, Base        (MIT)
 packages/express/   Express middleware                   (MIT)
 packages/gate/      umbrella install + `doctor` CLI      (MIT)
+packages/ingest/    cloud event client + signed config   (BSL)
+services/ingest/    cloud ingest API + dashboard v1      (BSL)
 examples/           Express + Base, in 20 lines
 golden/             cross-language byte fixtures (§11)
 specs/sdk.md        the build contract
 ```
+
+Licensing follows §2: everything a merchant needs is MIT, and no MIT package
+depends on the BSL ones — `@tollway/express` loads `@tollway/ingest` lazily as
+an optional peer, so a standalone install has no BSL code in its tree.
 
 ## Develop
 

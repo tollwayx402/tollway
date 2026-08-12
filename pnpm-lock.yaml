@@ -77,6 +77,9 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      '@tollway/ingest':
+        specifier: workspace:*
+        version: link:../ingest
       '@types/express':
         specifier: ^5.0.0
         version: 5.0.6
@@ -120,6 +123,49 @@ importers:
       x402-fetch:
         specifier: 1.2.0
         version: 1.2.0(bufferutil@4.1.0)(typescript@5.9.3)(utf-8-validate@5.0.10)
+
+  packages/ingest:
+    devDependencies:
+      '@tollway/core':
+        specifier: workspace:*
+        version: link:../core
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)
+
+  services/ingest:
+    dependencies:
+      '@tollway/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      express:
+        specifier: ^5.1.0
+        version: 5.2.1
+    devDependencies:
+      '@tollway/express':
+        specifier: workspace:*
+        version: link:../../packages/express
+      '@tollway/ingest':
+        specifier: workspace:*
+        version: link:../../packages/ingest
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)
 
 packages:
 

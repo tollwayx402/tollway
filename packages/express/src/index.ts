@@ -5,18 +5,24 @@
  * request onto `GateRequest`, render a halt, and report the outcome once the
  * handler has produced a status.
  */
-import { createGate, type Gate, type GateOptions, type GateRequest } from "@tollway/core";
+import { createGate, type EventSink, type Gate, type GateOptions, type GateRequest } from "@tollway/core";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
 export interface TollwayExpressOptions extends Omit<GateOptions, "route"> {
   /** Route label for events and receipts. Defaults to the mount path. */
   route?: string | ((req: Request) => string);
   /**
-   * Cloud API key (§3.1). Reserved: inert until `@tollway/ingest` ships in
-   * step 4. Passing it today logs a warning rather than silently pretending
-   * events are reaching the cloud.
+   * Cloud API key (§3.1). When set, events are also sent to Tollway Cloud.
+   *
+   * `@tollway/ingest` is an **optional peer dependency**, loaded lazily: it is
+   * BSL, this package is MIT, and §1.1 promises the SDK works with no cloud —
+   * so a hard dependency would drag BSL code into every standalone install.
+   * If it is not installed, this logs an error and stays local rather than
+   * pretending events are being delivered.
    */
   apiKey?: string;
+  /** Cloud ingest base URL. Defaults to the client's own default. */
+  ingestUrl?: string;
 }
 
 export interface TollwayMiddleware extends RequestHandler {
@@ -28,13 +34,11 @@ export interface TollwayMiddleware extends RequestHandler {
 const CLIENT_CLOSED = 499;
 
 export function tollway(options: TollwayExpressOptions): TollwayMiddleware {
-  const { route, apiKey, ...gateOptions } = options;
+  const { route, apiKey, ingestUrl, ...gateOptions } = options;
   const gate = createGate(gateOptions);
 
   if (apiKey !== undefined) {
-    (gateOptions.logger ?? console).warn?.(
-      "tollway: `apiKey` is not wired up yet — events stay local until @tollway/ingest ships (spec §12.4)",
-    );
+    attachCloudSink(gate, apiKey, ingestUrl, gateOptions.logger);
   }
 
   const handler: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
@@ -80,6 +84,51 @@ export function tollway(options: TollwayExpressOptions): TollwayMiddleware {
   };
 
   return Object.assign(handler, { gate });
+}
+
+/**
+ * Attach the cloud sink without ever blocking construction.
+ *
+ * The import is async but `tollway()` is not, so a buffering sink goes on the
+ * bus **synchronously** and replays into the real client once it loads. Without
+ * that, every event emitted during startup — exactly when a misconfiguration
+ * shows up — would be lost to the cloud.
+ */
+function attachCloudSink(
+  gate: Gate,
+  apiKey: string,
+  url: string | undefined,
+  logger: TollwayExpressOptions["logger"],
+): void {
+  const pending: Parameters<EventSink>[0][] = [];
+  let live: EventSink | undefined;
+
+  gate.events.addSink((event) => {
+    if (live === undefined) pending.push(event);
+    else return live(event);
+  });
+
+  void (async () => {
+    try {
+      const { createIngestClient } = await import("@tollway/ingest");
+      const client = createIngestClient({
+        apiKey,
+        ...(url === undefined ? {} : { url }),
+        ...(logger === undefined ? {} : { logger }),
+      });
+      live = client.sink;
+      for (const event of pending.splice(0)) client.sink(event);
+    } catch (error) {
+      (logger ?? console).error?.(
+        "tollway: `apiKey` was set but @tollway/ingest could not be loaded — events stay local. " +
+          `Install it to enable cloud events. (${error instanceof Error ? error.message : String(error)})`,
+      );
+      // Drop the backlog rather than growing it forever on a machine that will
+      // never have the package.
+      pending.length = 0;
+      live = () => {};
+    }
+  })();
 }
 
 function toGateRequest(req: Request, route: TollwayExpressOptions["route"]): GateRequest {

@@ -36,13 +36,17 @@ export type { EventBusOptions, EventSink, EventType, TollwayEvent } from "./even
 export {
   createEphemeralSigner,
   createSignerFromJwk,
+  documentSigningBytes,
+  documentSigningPayload,
   publicKeyHex,
   receiptSigningBytes,
   receiptSigningPayload,
+  signDocument,
   signReceipt,
+  verifyDocument,
   verifyReceipt,
 } from "./receipts.js";
-export type { Receipt, Signer, UnsignedReceipt } from "./receipts.js";
+export type { Receipt, Signer, SignedDocument, UnsignedReceipt } from "./receipts.js";
 
 export { MemoryNonceStore } from "./nonce.js";
 export type { MemoryNonceStoreOptions, NonceStore } from "./nonce.js";

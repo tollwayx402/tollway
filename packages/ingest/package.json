@@ -1,13 +1,10 @@
 {
-  "name": "@tollway/express",
+  "name": "@tollway/ingest",
   "version": "0.1.0",
-  "description": "Express middleware for Tollway: gate a route behind an x402 toll.",
-  "license": "MIT",
+  "description": "Tollway cloud event client: batches events to ingest.tollway.sh, and polls signed remote config.",
+  "license": "BUSL-1.1",
   "type": "module",
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "LICENSE", "README.md"],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -27,24 +24,13 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@tollway/core": "workspace:*"
   },
-  "peerDependencies": {
-    "express": ">=4.18",
-    "@tollway/ingest": "workspace:*"
-  },
   "devDependencies": {
-    "@types/express": "^5.0.0",
+    "@tollway/core": "workspace:*",
     "@types/node": "^22.10.2",
-    "express": "^5.1.0",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4",
-    "@tollway/ingest": "workspace:*"
-  },
-  "peerDependenciesMeta": {
-    "@tollway/ingest": {
-      "optional": true
-    }
+    "vitest": "^3.2.4"
   }
 }

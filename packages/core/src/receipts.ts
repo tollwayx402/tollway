@@ -72,20 +72,67 @@ async function signerFromKeys(privateKey: CryptoKey, publicKey: CryptoKey): Prom
   };
 }
 
-/** Bytes that a signature covers: canonical JSON of the receipt minus `sig`. */
-export function receiptSigningBytes(receipt: UnsignedReceipt | Receipt): Uint8Array {
-  const { sig: _sig, ...unsigned } = receipt as Receipt;
+/**
+ * There is exactly one signing rule in Tollway: Ed25519 over the canonical
+ * JSON of the document minus its `sig` field, encoded base64url. Receipts use
+ * it; so does signed remote config. Anything else that needs a signature
+ * should use these rather than inventing a second construction.
+ */
+export type SignedDocument = { sig: string };
+
+/** Bytes a signature covers: canonical JSON of the document minus `sig`. */
+export function documentSigningBytes(document: object): Uint8Array {
+  const { sig: _sig, ...unsigned } = document as SignedDocument;
   return canonicalBytes(unsigned);
 }
 
-export function receiptSigningPayload(receipt: UnsignedReceipt | Receipt): string {
-  const { sig: _sig, ...unsigned } = receipt as Receipt;
+export function documentSigningPayload(document: object): string {
+  const { sig: _sig, ...unsigned } = document as SignedDocument;
   return canonicalJson(unsigned);
 }
 
+export async function signDocument<T extends object>(
+  document: T,
+  signer: Signer,
+): Promise<T & SignedDocument> {
+  const signature = await signer.sign(documentSigningBytes(document));
+  return { ...document, sig: toBase64Url(signature) };
+}
+
+/** Verify a signed document against a raw 32-byte Ed25519 public key. */
+export async function verifyDocument(
+  document: SignedDocument,
+  publicKey: Uint8Array | CryptoKey,
+): Promise<boolean> {
+  const subtle = getCrypto().subtle;
+  let key: CryptoKey;
+  try {
+    key =
+      publicKey instanceof Uint8Array
+        ? await subtle.importKey("raw", publicKey as BufferSource, ED25519, false, ["verify"])
+        : publicKey;
+  } catch {
+    return false;
+  }
+  try {
+    return await subtle.verify(
+      ED25519,
+      key,
+      fromBase64(document.sig) as BufferSource,
+      documentSigningBytes(document) as BufferSource,
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** @deprecated Use {@link documentSigningBytes}. Kept for the receipt vocabulary. */
+export const receiptSigningBytes = documentSigningBytes;
+/** @deprecated Use {@link documentSigningPayload}. */
+export const receiptSigningPayload = documentSigningPayload;
+
 export async function signReceipt(receipt: UnsignedReceipt, signer: Signer): Promise<Receipt> {
-  const signature = await signer.sign(receiptSigningBytes(receipt));
-  return { ...receipt, sig: toBase64Url(signature) };
+  return signDocument(receipt, signer);
 }
 
 /** Verify a receipt against a raw 32-byte Ed25519 public key. */
@@ -93,21 +140,7 @@ export async function verifyReceipt(
   receipt: Receipt,
   publicKey: Uint8Array | CryptoKey,
 ): Promise<boolean> {
-  const subtle = getCrypto().subtle;
-  const key =
-    publicKey instanceof Uint8Array
-      ? await subtle.importKey("raw", publicKey as BufferSource, ED25519, false, ["verify"])
-      : publicKey;
-  try {
-    return await subtle.verify(
-      ED25519,
-      key,
-      fromBase64(receipt.sig) as BufferSource,
-      receiptSigningBytes(receipt) as BufferSource,
-    );
-  } catch {
-    return false;
-  }
+  return verifyDocument(receipt, publicKey);
 }
 
 /** Export a public key for the merchant to pin. */
