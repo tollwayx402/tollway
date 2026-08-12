@@ -262,4 +262,25 @@ describe("lifecycle", () => {
   it("refuses to start without an API key", () => {
     expect(() => createIngestClient({ apiKey: "" })).toThrow(/apiKey is required/);
   });
+
+  it("schedules no retry when the final flush at close fails", async () => {
+    // A retry timer surviving close() would post telemetry after the caller
+    // was told everything stopped.
+    let calls = 0;
+    const client = createIngestClient({
+      apiKey: "k",
+      fetchImpl: (async () => {
+        calls += 1;
+        return new Response("", { status: 503 });
+      }) as unknown as typeof fetch,
+      retryBaseMs: 1,
+      jitter: () => 0,
+    });
+
+    client.sink(event("e1"));
+    await client.close();
+    const after = calls;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(calls).toBe(after);
+  });
 });

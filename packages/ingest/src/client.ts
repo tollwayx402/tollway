@@ -285,12 +285,15 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
     sink,
     flush,
     async close(): Promise<void> {
+      // Mark closed BEFORE the final flush: if that flush fails, the retry
+      // path checks `closed` and stands down, instead of scheduling a timer
+      // that outlives close() and posts after the caller was told we stopped.
+      closed = true;
       if (timer !== undefined) {
         clearTimeout(timer);
         timer = undefined;
       }
       await flush();
-      closed = true;
     },
     stats,
   };

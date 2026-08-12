@@ -137,19 +137,25 @@ export function createServer(options: ServerOptions): Express {
         return;
       }
 
+      // `issued_at` is bucketed to 5 minutes, NOT the current second. With a
+      // per-second timestamp the signature — and therefore the ETag — would
+      // change on every request, making If-None-Match dead weight and every
+      // §8 poll a full 200. Within a bucket the document is byte-stable, so
+      // 304s actually happen; 5 minutes stays well inside the client's
+      // 15-minute freshness bound, so replay protection is unaffected.
+      const ISSUED_AT_BUCKET_S = 300;
       const config = await signDocument(
         {
           v: 1 as const,
           merchant: account.merchant,
-          issued_at: Math.floor(clock() / 1_000),
+          issued_at: Math.floor(clock() / 1_000 / ISSUED_AT_BUCKET_S) * ISSUED_AT_BUCKET_S,
           routes: account.routes ?? {},
         },
         options.configSigner,
       );
 
-      // The signature is deterministic for identical content, so it doubles as
-      // the ETag — except `issued_at` moves, which is intended: freshness is a
-      // security property here, so clients must not cache indefinitely.
+      // Ed25519 is deterministic, so for identical content the sig doubles as
+      // the ETag.
       const etag = `"${config.sig.slice(0, 27)}"`;
       res.setHeader("etag", etag);
       res.setHeader("cache-control", "no-cache");

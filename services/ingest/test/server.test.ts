@@ -235,15 +235,48 @@ describe("GET /v1/config", () => {
     }
   });
 
-  it("honours If-None-Match with 304 (§8: ETag / 60s poll)", async () => {
-    const first = await get("/v1/config");
-    const etag = first.headers.get("etag");
-    expect(etag).toBeTruthy();
-
-    const second = await fetch(`${url}/v1/config`, {
-      headers: { authorization: "Bearer key-a", "if-none-match": etag! },
+  it("honours If-None-Match with 304 even as the clock moves (§8: ETag / 60s poll)", async () => {
+    // The clock must ADVANCE between polls: with a per-second issued_at the
+    // signature changes every request and 304 never fires — the bug a frozen
+    // clock hid. issued_at is bucketed, so polls inside a bucket match.
+    // Aligned to a bucket start, so the two 60s polls below are unambiguously
+    // inside one bucket and the +10min poll is unambiguously outside it.
+    let now = Math.floor(NOW / 300_000) * 300_000;
+    const app = createServer({
+      store,
+      keys: KEYS,
+      configSigner: await createEphemeralSigner(),
+      clock: () => now,
     });
-    expect(second.status).toBe(304);
+    const local = await new Promise<Server>((resolve) => {
+      const created = app.listen(0, "127.0.0.1", () => resolve(created));
+    });
+    const localUrl = `http://127.0.0.1:${(local.address() as AddressInfo).port}`;
+    const poll = (etag?: string) =>
+      fetch(`${localUrl}/v1/config`, {
+        headers: { authorization: "Bearer key-a", ...(etag ? { "if-none-match": etag } : {}) },
+      });
+
+    try {
+      const first = await poll();
+      const etag = first.headers.get("etag");
+      expect(etag).toBeTruthy();
+
+      // Two §8-style 60s polls later, same bucket: 304.
+      now += 60_000;
+      expect((await poll(etag!)).status).toBe(304);
+      now += 60_000;
+      expect((await poll(etag!)).status).toBe(304);
+
+      // Past the bucket boundary the document legitimately changes.
+      now += 10 * 60_000;
+      const later = await poll(etag!);
+      expect(later.status).toBe(200);
+      expect(later.headers.get("etag")).not.toBe(etag);
+    } finally {
+      local.closeAllConnections();
+      await new Promise<void>((resolve) => local.close(() => resolve()));
+    }
   });
 
   it("serves each merchant only their own routes", async () => {
