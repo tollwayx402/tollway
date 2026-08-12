@@ -44,11 +44,28 @@ differ between networks — mainnet USDC is `"USD Coin"`, Base Sepolia's is
 useful error. This is also why the challenge nonce is not carried there; core
 keys replay protection on the payload hash instead.
 
-**Outages are not rejections.** A non-JSON body, a body with no verdict, a
-transport failure, a timeout, or a `*_error` reason from the facilitator all
-raise `FacilitatorUnreachableError`, which lets the merchant's
-`fail_open`/`fail_closed` choice decide. A payer is never told their payment is
-bad because our facilitator had a bad minute.
+**Outages are not rejections — but a verdict is a verdict.** A non-JSON body,
+a body with no verdict, a transport failure, or a timeout raises
+`FacilitatorUnreachableError`, letting the merchant's `fail_open`/`fail_closed`
+choice decide. A payer is never told their payment is bad because our
+facilitator had a bad minute.
+
+The escalation bar differs by stage, deliberately:
+
+- **Verify stage:** any answered `isValid: false` is a rejection — including
+  `unexpected_verify_error`. The payload is attacker-controlled input, so if a
+  crafted payload that crashes the facilitator's verify counted as an outage,
+  `fail_open` would be a free-content bypass. Only
+  `invalid_payment_requirements` escalates: it means *our* requirements are
+  malformed, which no payer can cause.
+- **Settle stage:** `unexpected_settle_error`, confirmation timeouts, and state
+  races escalate, because money may have moved without a usable answer.
+  Calling the payment "bad" there could be a lie.
+
+Even so, `fail_open` remains what it says: a genuine facilitator outage serves
+content unpaid, and outages can be induced from outside our input path (e.g.
+traffic floods). Merchants gating anything expensive should run `fail_closed`
+and treat `gate.error` spikes as an alert, not a shrug.
 
 ## Tests
 

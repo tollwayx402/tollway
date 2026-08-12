@@ -177,7 +177,7 @@ export function coinbaseFacilitator(
 
       if (verifyBody["isValid"] !== true) {
         const reason = stringOrUndefined(verifyBody["invalidReason"]);
-        if (isFacilitatorFault(reason)) {
+        if (isFacilitatorFault(reason, "verify")) {
           throw new FacilitatorUnreachableError(`facilitator verify failed: ${reason}`, {
             facilitator: id,
           });
@@ -216,7 +216,7 @@ export function coinbaseFacilitator(
 
       if (settleBody["success"] !== true) {
         const reason = stringOrUndefined(settleBody["errorReason"]);
-        if (isFacilitatorFault(reason)) {
+        if (isFacilitatorFault(reason, "settle")) {
           throw new FacilitatorUnreachableError(`facilitator settle failed: ${reason}`, {
             facilitator: id,
           });

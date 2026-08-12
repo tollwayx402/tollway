@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PaymentRequirementsSchema, SettleResponseSchema, VerifyResponseSchema } from "x402/types";
-import { silentLogger } from "@tollway/core";
+import { createGate, silentLogger } from "@tollway/core";
+import { encodePaymentHeader } from "@tollway/core/testing";
 import type { ChallengeRequest, PaymentPayload, VerifyContext } from "@tollway/core";
 import { coinbaseFacilitator } from "../src/index.js";
 import { NETWORKS } from "../src/networks.js";
@@ -212,20 +213,52 @@ describe("outages are not rejections", () => {
     await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(/ENOTFOUND/);
   });
 
-  it("treats facilitator-fault reasons as unreachable, not as a bad payment", async () => {
-    const verifyFault = coinbaseFacilitator({
-      fetchImpl: replayFetch(["verify.facilitatorFault"]).fetch,
-    });
-    await expect(verifyFault.verify(payment, context(verifyFault))).rejects.toThrow(
-      /unexpected_verify_error/,
-    );
-
+  it("treats settle-stage faults as unreachable — money may have moved", async () => {
     const settleFault = coinbaseFacilitator({
       fetchImpl: replayFetch(["verify.ok", "settle.fault"]).fetch,
     });
     await expect(settleFault.verify(payment, context(settleFault))).rejects.toThrow(
       /unexpected_settle_error/,
     );
+  });
+
+  it("a verify-stage 'unexpected error' is a REJECTION, or fail_open is a bypass", async () => {
+    // The payload is attacker-controlled input. If a payload that crashes the
+    // facilitator's verify counted as an outage, any merchant running
+    // fail_open would serve it for free. A verdict-shaped response is a
+    // verdict, whatever the reason string says.
+    const verifyFault = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.facilitatorFault"]).fetch,
+    });
+    const result = await verifyFault.verify(payment, context(verifyFault));
+    expect(result).toMatchObject({ ok: false, code: "invalid_payment" });
+  });
+
+  it("fail_open cannot be bought with a crafted payload", async () => {
+    // The full exploit path, end to end: a fail_open gate must still 402 a
+    // payload that provokes unexpected_verify_error, because the facilitator
+    // did answer — only a genuine outage may open the gate.
+    const gate = createGate({
+      price: "$0.004",
+      asset: "usdc",
+      network: "base-sepolia",
+      payTo: `0x${"1".repeat(40)}`,
+      mode: "fail_open",
+      resourceBase: "https://api.example.com",
+      facilitator: coinbaseFacilitator({
+        fetchImpl: replayFetch(["verify.facilitatorFault"]).fetch,
+      }),
+    });
+
+    const result = await gate.handle({
+      method: "GET",
+      route: "/v1/report",
+      headers: { "x-payment": encodePaymentHeader(payment) },
+    });
+
+    expect(result.type).toBe("reject");
+    if (result.type === "pass") throw new Error("fail_open served a crafted payload for free");
+    expect(result.status).toBe(402);
   });
 
   it("times out rather than hanging the request", async () => {

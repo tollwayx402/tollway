@@ -27,6 +27,9 @@ const REASONS: Record<string, RejectCode> = {
   // Already settled.
   duplicate_settlement: "replay",
 
+  // Verify-stage faults are still rejections — see the stage note below.
+  unexpected_verify_error: "invalid_payment",
+
   // Everything else is a bad payment, including insufficient_funds: the payer
   // authorized something the chain will not honour.
   insufficient_funds: "invalid_payment",
@@ -39,20 +42,37 @@ const REASONS: Record<string, RejectCode> = {
 };
 
 /**
- * Reasons that mean "the facilitator itself failed", not "the payment is bad".
- * These become {@link FacilitatorUnreachableError} so the merchant's fail_open
- * / fail_closed choice applies, instead of charging the payer for our outage.
+ * Reasons that escalate to {@link FacilitatorUnreachableError}, letting the
+ * merchant's fail_open / fail_closed choice apply. The bar is deliberately
+ * different per stage:
+ *
+ * **Verify stage**: only `invalid_payment_requirements` — the facilitator is
+ * saying *our* requirements are malformed, which a payer cannot cause and a
+ * 402 would misattribute. Everything else, including `unexpected_verify_error`,
+ * is a REJECTION. The payload is attacker-controlled input: if a crafted
+ * payload that crashes the facilitator's verify counted as an outage, then
+ * under `fail_open` it would be a free-content bypass. A verdict-shaped
+ * response is a verdict, whatever the reason string says.
+ *
+ * **Settle stage**: faults where money may have moved without a usable answer
+ * (`unexpected_settle_error`, confirmation timeouts, state races). Calling the
+ * payment "bad" there could be a lie; the merchant's mode must decide.
  */
-const FACILITATOR_FAULTS = new Set([
-  "unexpected_verify_error",
+const VERIFY_FAULTS = new Set(["invalid_payment_requirements"]);
+
+const SETTLE_FAULTS = new Set([
   "unexpected_settle_error",
   "invalid_transaction_state",
   "settle_exact_svm_transaction_confirmation_timed_out",
   "settle_exact_svm_block_height_exceeded",
 ]);
 
-export function isFacilitatorFault(reason: string | undefined): boolean {
-  return reason !== undefined && FACILITATOR_FAULTS.has(reason);
+export function isFacilitatorFault(
+  reason: string | undefined,
+  stage: "verify" | "settle",
+): boolean {
+  if (reason === undefined) return false;
+  return stage === "verify" ? VERIFY_FAULTS.has(reason) : SETTLE_FAULTS.has(reason);
 }
 
 export function rejectCodeFor(reason: string | undefined): RejectCode {

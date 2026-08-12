@@ -122,7 +122,15 @@ async function main() {
   const baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
   try {
-    const paidFetch = agentFetch(agentKey).fetch;
+    // Capture the X-PAYMENT header the client sends, at the transport — the
+    // client does not expose it, and the replay check below needs the real one.
+    let sentPayment: string | undefined;
+    const capturingTransport = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const header = new Headers(init?.headers).get("X-PAYMENT");
+      if (header) sentPayment = header;
+      return fetch(input as string, init);
+    }) as typeof fetch;
+    const paidFetch = agentFetch(agentKey, capturingTransport).fetch;
 
     const started = Date.now();
     const response = await paidFetch(`${baseUrl}/v1/report`);
@@ -153,12 +161,21 @@ async function main() {
       check("receipt signature verifies", await verifyReceipt(signedReceipt, await gate.publicKey()));
     }
 
-    // 4. Replay the same payment: the facilitator should refuse, and so should we.
+    // 4. Replay the exact payment the client sent: our nonce store should
+    //    refuse it before the facilitator is even consulted.
     console.log("\nreplay:");
-    const replayResponse = await fetch(`${baseUrl}/v1/report`, {
-      headers: { "x-payment": response.headers.get("x-payment-echo") ?? "" },
-    });
-    check("bare replay is not served", replayResponse.status !== 200, `status ${replayResponse.status}`);
+    check("captured the client's X-PAYMENT header", Boolean(sentPayment));
+    if (sentPayment) {
+      const replayResponse = await fetch(`${baseUrl}/v1/report`, {
+        headers: { "x-payment": sentPayment },
+      });
+      const replayBody = (await replayResponse.json()) as { errorDetail?: { code?: string } };
+      check(
+        "replayed payment is rejected as a replay",
+        replayResponse.status === 402 && replayBody.errorDetail?.code === "replay",
+        `status ${replayResponse.status}, code ${replayBody.errorDetail?.code ?? "none"}`,
+      );
+    }
 
     console.log(`\nevents: ${events.map((event) => event.type).join(" → ")}`);
   } finally {

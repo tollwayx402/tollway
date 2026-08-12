@@ -42,13 +42,16 @@ const payTo = required("TW_PAY_TO");
 
 const recorded: Record<string, unknown> = {};
 
-/** Wraps fetch so every facilitator exchange is captured verbatim. */
-function recordingFetch(label: string): typeof fetch {
+/**
+ * Wraps fetch so each facilitator exchange lands under the exact fixture key
+ * the tests read (`keys.verify` / `keys.settle`). Passing a key as `null`
+ * discards that exchange instead of recording it.
+ */
+function recordingFetch(keys: { verify: string | null; settle: string | null }): typeof fetch {
   return (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const url = String(input);
     const response = await fetch(input as string, init);
-    const clone = response.clone();
-    const text = await clone.text();
+    const text = await response.clone().text();
     let body: unknown;
     try {
       body = JSON.parse(text);
@@ -56,7 +59,12 @@ function recordingFetch(label: string): typeof fetch {
       body = undefined;
     }
     const path = url.endsWith("/settle") ? "settle" : "verify";
-    recorded[`${label}.${path}`] = {
+    const key = keys[path];
+    if (key === null) {
+      console.log(`  discarded ${path} exchange → ${response.status}`);
+      return response;
+    }
+    recorded[key] = {
       path,
       response:
         body === undefined
@@ -67,7 +75,7 @@ function recordingFetch(label: string): typeof fetch {
             }
           : { status: response.status, body },
     };
-    console.log(`  recorded ${label}.${path} → ${response.status}`);
+    console.log(`  recorded ${key} → ${response.status}`);
     return response;
   }) as typeof fetch;
 }
@@ -93,7 +101,7 @@ async function main() {
     resourceBase: "https://record.tollway.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
-      fetchImpl: recordingFetch("verify.ok"),
+      fetchImpl: recordingFetch({ verify: "verify.ok", settle: "settle.ok" }),
       ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
     }),
   });
@@ -126,7 +134,10 @@ async function main() {
     resourceBase: "https://record.tollway.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
-      fetchImpl: recordingFetch("settle.duplicate"),
+      // The replay verifies again (same valid authorization) and fails at
+      // settle: keep only the duplicate_settlement, the exchange that cannot
+      // be honestly fabricated.
+      fetchImpl: recordingFetch({ verify: null, settle: "settle.duplicate" }),
       ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
     }),
   });
@@ -147,7 +158,7 @@ async function main() {
     resourceBase: "https://record.tollway.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
-      fetchImpl: recordingFetch("verify.badSignature"),
+      fetchImpl: recordingFetch({ verify: "verify.badSignature", settle: null }),
       ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
     }),
   });
