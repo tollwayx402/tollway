@@ -12,7 +12,7 @@
  * measured against real CDP behaviour in the live testnet run.
  */
 import { FacilitatorUnreachableError } from "@tollway/core";
-import { DEFAULT_FACILITATOR_URL } from "./index.js";
+import { DEFAULT_FACILITATOR_URL } from "./constants.js";
 
 export interface ClockSkewOptions {
   url?: string;

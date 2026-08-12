@@ -29,6 +29,11 @@ const REASONS: Record<string, RejectCode> = {
 
   // Verify-stage faults are still rejections — see the stage note below.
   unexpected_verify_error: "invalid_payment",
+  // Observed live from https://x402.org/facilitator (2026-08-12): a malformed
+  // payload returns HTTP 500 with `invalidReason: "unexpected_error"` — a
+  // string that does not appear in x402@1.2.0's ErrorReasons enum at all.
+  // Mapped explicitly so it is a decision rather than a fallback.
+  unexpected_error: "invalid_payment",
 
   // Everything else is a bad payment, including insufficient_funds: the payer
   // authorized something the chain will not honour.

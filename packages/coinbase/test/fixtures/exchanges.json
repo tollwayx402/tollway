@@ -1,13 +1,14 @@
 {
   "_provenance": {
-    "status": "SYNTHETIC — not yet recorded from a live facilitator",
-    "why": "Recording requires CDP credentials and a funded Base Sepolia wallet, which CI does not have and this machine did not have when these were authored.",
-    "validated": "Every response body below is checked against x402@1.2.0's VerifyResponseSchema / SettleResponseSchema by test/adapter.test.ts, so the shapes are the reference project's, not invented ones.",
-    "howToReplace": "pnpm --filter @tollway/coinbase record  (see scripts/record.ts). Replace these entries wholesale and delete this block; the tests do not care which kind they are.",
-    "recordedAt": null,
-    "facilitatorUrl": null
+    "status": "MIXED \u2014 one entry recorded live, the rest synthetic",
+    "recorded": {
+      "verify.garbagePayload": "Recorded 2026-08-12 from https://x402.org/facilitator. A malformed payload returns HTTP 500 with invalidReason 'unexpected_error' \u2014 a string absent from x402@1.2.0's ErrorReasons enum, and with extra invalidMessage/error fields."
+    },
+    "syntheticWhy": "The remaining entries need CDP credentials and a funded Base Sepolia wallet to record; settle.ok in particular cannot be honestly fabricated.",
+    "validated": "Response bodies are checked against x402@1.2.0's VerifyResponseSchema / SettleResponseSchema by test/adapter.test.ts. Entries marked `recorded: true` are exempt: reality outranks the schema, and this one provably violates it.",
+    "howToReplace": "pnpm --filter @tollway/coinbase record  (see scripts/record.ts).",
+    "facilitatorUrl": "https://x402.org/facilitator"
   },
-
   "verify.ok": {
     "path": "verify",
     "response": {
@@ -18,7 +19,6 @@
       }
     }
   },
-
   "settle.ok": {
     "path": "settle",
     "response": {
@@ -31,7 +31,6 @@
       }
     }
   },
-
   "verify.badSignature": {
     "path": "verify",
     "response": {
@@ -43,7 +42,6 @@
       }
     }
   },
-
   "verify.expired": {
     "path": "verify",
     "response": {
@@ -55,7 +53,6 @@
       }
     }
   },
-
   "verify.insufficientFunds": {
     "path": "verify",
     "response": {
@@ -67,7 +64,6 @@
       }
     }
   },
-
   "verify.wrongNetwork": {
     "path": "verify",
     "response": {
@@ -78,7 +74,6 @@
       }
     }
   },
-
   "verify.underpaid": {
     "path": "verify",
     "response": {
@@ -90,7 +85,6 @@
       }
     }
   },
-
   "verify.facilitatorFault": {
     "path": "verify",
     "response": {
@@ -101,7 +95,6 @@
       }
     }
   },
-
   "settle.duplicate": {
     "path": "settle",
     "response": {
@@ -115,7 +108,6 @@
       }
     }
   },
-
   "settle.fault": {
     "path": "settle",
     "response": {
@@ -128,7 +120,6 @@
       }
     }
   },
-
   "gateway.502": {
     "path": "verify",
     "response": {
@@ -137,13 +128,25 @@
       "rawBody": "<html><body>502 Bad Gateway</body></html>"
     }
   },
-
   "gateway.rateLimited": {
     "path": "verify",
     "response": {
       "status": 429,
       "body": {
         "error": "rate limit exceeded"
+      }
+    }
+  },
+  "verify.garbagePayload": {
+    "path": "verify",
+    "recorded": true,
+    "response": {
+      "status": 500,
+      "body": {
+        "isValid": false,
+        "invalidReason": "unexpected_error",
+        "invalidMessage": "Cannot read properties of undefined (reading 'from')",
+        "error": "Cannot read properties of undefined (reading 'from')"
       }
     }
   }

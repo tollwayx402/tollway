@@ -15,6 +15,7 @@ import {
   type VerifyContext,
   type VerifyResult,
 } from "@tollway/core";
+import { DEFAULT_FACILITATOR_URL } from "./constants.js";
 import { SUPPORTED_NETWORKS, assetConfig } from "./networks.js";
 import { isFacilitatorFault, rejectCodeFor } from "./reasons.js";
 
@@ -22,10 +23,14 @@ export { NETWORKS, SUPPORTED_NETWORKS, assetConfig } from "./networks.js";
 export type { AssetConfig, NetworkConfig } from "./networks.js";
 export { isFacilitatorFault, rejectCodeFor } from "./reasons.js";
 
-/** The public facilitator, matching `x402`'s `DEFAULT_FACILITATOR_URL`. */
-export const DEFAULT_FACILITATOR_URL = "https://x402.org/facilitator";
-/** CDP's hosted facilitator. Requires auth headers. */
-export const CDP_FACILITATOR_URL = "https://api.cdp.coinbase.com/platform/v2/x402";
+export { CDP_FACILITATOR_URL, DEFAULT_FACILITATOR_URL } from "./constants.js";
+export {
+  measureClockSkew,
+  SKEW_CRITICAL_MS,
+  SKEW_WARN_MS,
+  type ClockSkew,
+  type ClockSkewOptions,
+} from "./skew.js";
 
 export interface AuthHeaders {
   verify: Record<string, string>;

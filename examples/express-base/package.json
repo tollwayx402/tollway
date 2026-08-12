@@ -1,0 +1,18 @@
+{
+  "name": "@tollway/example-express-base",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "agent": "node agent.js"
+  },
+  "dependencies": {
+    "@tollway/gate": "workspace:*",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "viem": "2.55.13",
+    "x402-fetch": "1.2.0"
+  }
+}

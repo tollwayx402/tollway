@@ -7,6 +7,39 @@ encoding, core gains a second encoder keyed on the revision, and facilitator
 adapters declare which revisions they speak. Core never silently follows a
 moving target.
 
+### Drift is already here — measured, not speculated
+
+`GET https://x402.org/facilitator/supported` on **2026-08-12** returned:
+
+```json
+{"kinds":[{"x402Version":2,"scheme":"exact","network":"eip155:84532"},
+          {"x402Version":2,"scheme":"upto","network":"eip155:84532","extra":{…}},
+          {"x402Version":2,"scheme":"batch-settlement","network":"eip155:84532"}, …]}
+```
+
+Three differences from what we and the reference client speak:
+
+1. **`x402Version: 2`**, where we and `x402@1.2.0` both send `1`.
+2. **CAIP-2 network ids** (`eip155:84532`), where we send `base-sepolia`.
+3. **New schemes**: `upto` and `batch-settlement` alongside `exact`.
+
+The v1 shape is still accepted — a v1 `/verify` was processed, not refused — so
+nothing is broken today, and the client library everyone actually uses is still
+v1. But the facilitator is ahead of the client, and this is the seam where that
+will first hurt.
+
+What this does **not** justify is guessing at v2. `accepts` entries must keep
+matching what the *client* parses, and the client is v1. The move, when it
+comes, is: read `/supported`, negotiate a revision per facilitator, and keep a
+v1 encoder for as long as clients send v1. That is step-6 work
+(multi-network/multi-scheme), not something to retrofit blind.
+
+Adapters should also expect reason strings **outside** the documented enum: the
+live facilitator returns `invalidReason: "unexpected_error"` (with an extra
+`invalidMessage`) on a malformed payload, which `x402@1.2.0`'s `ErrorReasons`
+does not contain. Map unknown reasons to a safe rejection; never assume the
+enum is exhaustive.
+
 ## 1. Challenge (402)
 
 An unpaid request gets `402` with `content-type: application/json` and:

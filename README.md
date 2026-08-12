@@ -11,8 +11,8 @@ Build order is `specs/sdk.md` §12.
 | --- | --- | --- |
 | 1 | `packages/core` — challenge, verify pipeline, events, receipts, nonce cache | **done** |
 | 2 | `packages/coinbase` + Base Sepolia e2e ← first demo | **done**, live run pending credentials |
-| 3 | `express` adapter + examples + `doctor` | next |
-| 4 | `ingest` client + cloud ingest + dashboard v1 | |
+| 3 | `packages/express` + `packages/gate` (`doctor`) + examples | **done** |
+| 4 | `ingest` client + cloud ingest + dashboard v1 | next |
 | 5 | `hono`, then Python core + FastAPI | |
 | 6 | `payai` adapter (Solana), multi-network challenges | |
 
@@ -21,11 +21,18 @@ funds and no network (`packages/coinbase/test/client-walk.test.ts`). The live
 Base Sepolia run is written and wired to a nightly workflow; it needs a
 faucet-funded wallet to have ever run for real.
 
+```bash
+npx @tollway/gate doctor --pay-to 0xYourAddress --network base-sepolia
+```
+
 ## Layout
 
 ```
 packages/core/      protocol logic, framework-agnostic   (MIT)
 packages/coinbase/  CDP facilitator adapter, Base        (MIT)
+packages/express/   Express middleware                   (MIT)
+packages/gate/      umbrella install + `doctor` CLI      (MIT)
+examples/           Express + Base, in 20 lines
 golden/             cross-language byte fixtures (§11)
 specs/sdk.md        the build contract
 ```

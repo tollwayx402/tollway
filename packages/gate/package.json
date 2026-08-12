@@ -1,0 +1,53 @@
+{
+  "name": "@tollway/gate",
+  "version": "0.1.0",
+  "description": "Batteries-included Tollway: core + Express + the Coinbase facilitator, and the `doctor` CLI.",
+  "license": "MIT",
+  "type": "module",
+  "files": ["dist", "README.md"],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "tollway": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./doctor": {
+      "types": "./dist/doctor.d.ts",
+      "default": "./dist/doctor.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && chmod +x dist/cli.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@tollway/coinbase": "workspace:*",
+    "@tollway/core": "workspace:*",
+    "@tollway/express": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "viem": { "optional": true },
+    "x402-fetch": { "optional": true }
+  },
+  "peerDependencies": {
+    "viem": ">=2.23",
+    "x402-fetch": ">=1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.9.3",
+    "viem": "2.55.13",
+    "vitest": "^3.2.4",
+    "x402-fetch": "1.2.0"
+  }
+}

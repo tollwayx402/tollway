@@ -52,6 +52,14 @@ function context(adapter = coinbaseFacilitator()): VerifyContext {
 describe("fixtures", () => {
   // If these drift from the reference schemas the fixtures are lying, and
   // every test below is worthless.
+  it("a recorded fixture is exempt — reality outranks the schema", () => {
+    // The live facilitator sends `invalidReason: "unexpected_error"`, which is
+    // not in the enum. If we forced recorded fixtures to validate, we would be
+    // asserting that the real world is wrong.
+    const recorded = exchange("verify.garbagePayload");
+    expect(() => VerifyResponseSchema.parse(recorded.response.body)).toThrow();
+  });
+
   it("verify fixtures match the reference VerifyResponse schema", () => {
     for (const name of [
       "verify.ok",
@@ -138,6 +146,18 @@ describe("verify", () => {
 
     expect(result).toMatchObject({ ok: false, code: "invalid_payment" });
     expect(replay.calls).toHaveLength(1);
+  });
+
+  it("handles the real facilitator's out-of-enum crash response", async () => {
+    // Recorded live: HTTP 500, isValid:false, invalidReason "unexpected_error"
+    // — a string x402@1.2.0's enum does not contain. It must be a rejection,
+    // not an outage: the payload that provoked it is attacker-controlled.
+    const adapter = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.garbagePayload"]).fetch,
+    });
+    const result = await adapter.verify(payment, context(adapter));
+    expect(result).toMatchObject({ ok: false, code: "invalid_payment" });
+    if (!result.ok) expect(result.message).toMatch(/unexpected_error/);
   });
 
   it("maps facilitator reasons onto Tollway reject codes", async () => {
