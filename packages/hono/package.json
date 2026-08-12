@@ -1,0 +1,49 @@
+{
+  "name": "@tollway/hono",
+  "version": "0.1.0",
+  "description": "Hono middleware for Tollway. Runs on Cloudflare Workers, Deno, Bun and Node.",
+  "license": "MIT",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@tollway/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "hono": ">=4.0.0",
+    "@tollway/ingest": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "hono": "^4.13.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4",
+    "@tollway/ingest": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@tollway/ingest": {
+      "optional": true
+    }
+  }
+}

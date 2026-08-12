@@ -26,3 +26,25 @@ jobs:
         # A protocol change must be a deliberate, reviewed diff — never an
         # accident that a test run quietly rewrites.
         run: git diff --exit-code golden/
+
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # 3.9 is the floor the package claims; 3.12 is what people run.
+        python-version: ["3.9", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: install
+        working-directory: packages/python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: test
+        working-directory: packages/python
+        # Includes the §11 golden tests, which compare this port's bytes
+        # against the fixtures the TypeScript suite produced.
+        run: python -m pytest -q

@@ -6,3 +6,9 @@ dist/
 .env.*
 !.env.example
 coverage/
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/

@@ -13,8 +13,8 @@ Build order is `specs/sdk.md` §12.
 | 2 | `packages/coinbase` + Base Sepolia e2e ← first demo | **done**, live run pending credentials |
 | 3 | `packages/express` + `packages/gate` (`doctor`) + examples | **done** |
 | 4 | `packages/ingest` + `services/ingest` + dashboard v1 | **done** |
-| 5 | `hono`, then Python core + FastAPI | next |
-| 6 | `payai` adapter (Solana), multi-network challenges | |
+| 5 | `packages/hono`, `packages/python` (core + FastAPI) | **done** |
+| 6 | `payai` adapter (Solana), multi-network challenges | next |
 
 The reference `x402-fetch` client pays a Tollway gate end to end in CI, with no
 funds and no network (`packages/coinbase/test/client-walk.test.ts`). The live
@@ -32,6 +32,8 @@ packages/core/      protocol logic, framework-agnostic   (MIT)
 packages/coinbase/  CDP facilitator adapter, Base        (MIT)
 packages/express/   Express middleware                   (MIT)
 packages/gate/      umbrella install + `doctor` CLI      (MIT)
+packages/hono/      Hono middleware, edge-ready           (MIT)
+packages/python/    Python core + FastAPI adapter        (MIT)
 packages/ingest/    cloud event client + signed config   (BSL)
 services/ingest/    cloud ingest API + dashboard v1      (BSL)
 examples/           Express + Base, in 20 lines
@@ -53,3 +55,14 @@ pnpm -r build
 
 Node 20+ (WebCrypto Ed25519). Start with `packages/core/README.md`, then
 `packages/core/PROTOCOL.md` for the wire format.
+
+Python:
+
+```bash
+cd packages/python
+python -m venv .venv && .venv/bin/pip install -e ".[dev]"
+.venv/bin/python -m pytest
+```
+
+The Python port reproduces the TypeScript wire format byte for byte — the
+fixtures in `golden/` are the contract, and both suites are held to them in CI.
