@@ -16,10 +16,19 @@ import {
   type VerifyResult,
 } from "@tollway/core";
 import { DEFAULT_FACILITATOR_URL } from "./constants.js";
-import { SUPPORTED_NETWORKS, assetConfig } from "./networks.js";
+import { DEFAULT_NETWORKS, assetConfig } from "./networks.js";
 import { isFacilitatorFault, rejectCodeFor } from "./reasons.js";
 
-export { NETWORKS, SUPPORTED_NETWORKS, assetConfig } from "./networks.js";
+export {
+  DEFAULT_NETWORKS,
+  KNOWN_NETWORKS,
+  NETWORKS,
+  SUPPORTED_NETWORKS,
+  assetConfig,
+  networkForCaip2,
+} from "./networks.js";
+export { fetchSupportedNetworks } from "./supported.js";
+export type { FetchSupportedOptions, SupportedNetworks } from "./supported.js";
 export type { AssetConfig, NetworkConfig } from "./networks.js";
 export { isFacilitatorFault, rejectCodeFor } from "./reasons.js";
 
@@ -46,7 +55,12 @@ export interface CoinbaseFacilitatorOptions {
    * The adapter never sees or stores a key.
    */
   createAuthHeaders?: () => Promise<AuthHeaders> | AuthHeaders;
-  /** Networks to advertise. Defaults to every network the adapter knows. */
+  /**
+   * Networks to advertise. Defaults to {@link DEFAULT_NETWORKS} (Base only) —
+   * NOT every network in the table, because a network the facilitator will not
+   * settle fails the payer after they signed. Opt into more explicitly, and
+   * let `doctor` check the set against the facilitator's /supported.
+   */
   networks?: Network[];
   /** Injected for tests and recorded fixtures. Defaults to global `fetch`. */
   fetchImpl?: typeof fetch;
@@ -69,7 +83,7 @@ export function coinbaseFacilitator(
   options: CoinbaseFacilitatorOptions = {},
 ): FacilitatorAdapter {
   const url = (options.url ?? DEFAULT_FACILITATOR_URL).replace(/\/+$/, "");
-  const networks = options.networks ?? SUPPORTED_NETWORKS;
+  const networks = options.networks ?? DEFAULT_NETWORKS;
   const timeoutMs = options.timeoutMs ?? 10_000;
   const shouldSettle = options.settle ?? true;
   const id = options.id ?? "coinbase";

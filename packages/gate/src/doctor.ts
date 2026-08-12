@@ -22,7 +22,7 @@ import {
   type Receipt,
   type TollwayEvent,
 } from "@tollway/core";
-import { measureClockSkew, SKEW_CRITICAL_MS } from "@tollway/coinbase";
+import { fetchSupportedNetworks, measureClockSkew, SKEW_CRITICAL_MS } from "@tollway/coinbase";
 
 export interface DoctorOptions {
   gate: GateOptions;
@@ -139,7 +139,41 @@ export async function doctor(options: DoctorOptions): Promise<DoctorReport> {
     });
   }
 
-  // --- 4. end-to-end self-payment -----------------------------------------
+  // --- 4. network settleability -------------------------------------------
+
+  const configuredNetworks = Array.isArray(options.gate.network)
+    ? options.gate.network
+    : [options.gate.network];
+
+  if (options.facilitatorUrl === undefined) {
+    add({
+      name: "configured networks are facilitator-settleable",
+      ok: true,
+      skipped: true,
+      detail: "no facilitator URL supplied — cannot probe /supported",
+    });
+  } else {
+    await run("configured networks are facilitator-settleable", async () => {
+      const supported = await fetchSupportedNetworks({
+        url: options.facilitatorUrl!,
+        ...(options.fetchImpl === undefined ? {} : { fetchImpl: options.fetchImpl }),
+        ...(options.timeoutMs === undefined ? {} : { timeoutMs: options.timeoutMs }),
+      });
+      const missing = configuredNetworks.filter((network) => !supported.networks.has(network));
+      if (missing.length > 0) {
+        // The failure this prevents happens in the AGENT's process: they parse
+        // the challenge, sign a payment, and only then hit a network the
+        // facilitator will not settle.
+        throw new Error(
+          `facilitator does not settle: ${missing.join(", ")} ` +
+            `(it settles: ${[...supported.networks].sort().join(", ") || "nothing recognisable"})`,
+        );
+      }
+      return `settles all of: ${configuredNetworks.join(", ")}`;
+    });
+  }
+
+  // --- 5. end-to-end self-payment -----------------------------------------
 
   if (options.skipSelfPayment === true) {
     add({ name: "self-payment", ok: true, skipped: true, detail: "explicitly skipped" });

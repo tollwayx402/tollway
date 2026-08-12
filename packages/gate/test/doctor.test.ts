@@ -15,13 +15,27 @@ function gateOptions(overrides: Partial<GateOptions> = {}): GateOptions {
   };
 }
 
-/** A facilitator whose `Date` header is `offsetMs` away from ours. */
-function skewedFacilitator(offsetMs: number) {
-  return (async () =>
-    new Response("{}", {
+/**
+ * A facilitator whose `Date` header is `offsetMs` away from ours, and which
+ * answers /supported with the given kinds — doctor probes both endpoints
+ * through one injected fetch.
+ */
+function skewedFacilitator(offsetMs: number, settles: string[] = ["base-sepolia"]) {
+  return (async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/supported")) {
+      return new Response(
+        JSON.stringify({
+          kinds: settles.map((network) => ({ x402Version: 1, scheme: "exact", network })),
+        }),
+        { status: 200, headers: { date: new Date(Date.now() - offsetMs).toUTCString() } },
+      );
+    }
+    return new Response("{}", {
       status: 200,
       headers: { date: new Date(Date.now() - offsetMs).toUTCString() },
-    })) as unknown as typeof fetch;
+    });
+  }) as unknown as typeof fetch;
 }
 
 describe("doctor", () => {
@@ -136,6 +150,39 @@ describe("doctor", () => {
     const skew = report.checks.find((c) => c.name === "clock skew is within tolerance");
     expect(skew?.ok).toBe(false);
     expect(skew?.detail).toMatch(/ENOTFOUND/);
+  });
+
+  it("fails when a configured network is not facilitator-settleable", async () => {
+    // The failure this catches otherwise happens in the agent's process, after
+    // they signed.
+    const report = await doctor({
+      gate: gateOptions(),
+      facilitatorUrl: "https://facilitator.test",
+      fetchImpl: skewedFacilitator(0, ["solana-devnet"]),
+      skipSelfPayment: true,
+    });
+
+    const check = report.checks.find(
+      (c) => c.name === "configured networks are facilitator-settleable",
+    );
+    expect(check?.ok).toBe(false);
+    expect(check?.detail).toMatch(/does not settle: base-sepolia/);
+    expect(check?.detail).toMatch(/it settles: solana-devnet/);
+    expect(report.ok).toBe(false);
+  });
+
+  it("passes settleability when the facilitator lists every configured network", async () => {
+    const report = await doctor({
+      gate: gateOptions(),
+      facilitatorUrl: "https://facilitator.test",
+      fetchImpl: skewedFacilitator(0),
+      skipSelfPayment: true,
+    });
+    const check = report.checks.find(
+      (c) => c.name === "configured networks are facilitator-settleable",
+    );
+    expect(check?.ok).toBe(true);
+    expect(check?.detail).toMatch(/settles all of: base-sepolia/);
   });
 
   it("skips the skew check loudly when no facilitator URL is known", async () => {
