@@ -78,6 +78,22 @@ describe("doctor", () => {
     expect(names).toContain("mock: verify returns a rejection value for a bad payload, never throws");
   });
 
+  it("resolves a string facilitator and still runs its conformance suite", async () => {
+    // A by-id facilitator must not silently vanish from the run.
+    const { registerFacilitator } = await import("@tollway/core");
+    registerFacilitator(createMockFacilitator({ id: "doctor-registered", networks: ["base-sepolia"] }));
+
+    const report = await doctor({
+      gate: gateOptions({ facilitator: "doctor-registered" }),
+      skipSelfPayment: true,
+    });
+
+    expect(report.checks.map((c) => c.name)).toContain(
+      "doctor-registered: buildChallenge returns a complete scheme",
+    );
+    expect(report.checks.filter((c) => !c.ok)).toEqual([]);
+  });
+
   it("reports an aligned clock as healthy", async () => {
     const report = await doctor({
       gate: gateOptions(),

@@ -12,6 +12,7 @@ import type { AddressInfo } from "node:net";
 import {
   createGate,
   parsePrice,
+  resolveFacilitator,
   runFacilitatorConformance,
   verifyReceipt,
   RECEIPT_HEADER,
@@ -98,9 +99,12 @@ export async function doctor(options: DoctorOptions): Promise<DoctorReport> {
 
   // --- 2. facilitator ------------------------------------------------------
 
-  const adapters = (
+  // String specs resolve through the registry — config validation above
+  // already proved they do. Filtering them out instead would silently skip
+  // their conformance run, which is exactly what doctor must never do.
+  const adapters: FacilitatorAdapter[] = (
     Array.isArray(options.gate.facilitator) ? options.gate.facilitator : [options.gate.facilitator]
-  ).filter((spec): spec is FacilitatorAdapter => typeof spec !== "string");
+  ).map((spec) => resolveFacilitator(spec));
 
   for (const adapter of adapters) {
     const results = await runFacilitatorConformance(adapter, {
