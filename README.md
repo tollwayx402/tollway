@@ -10,16 +10,22 @@ Build order is `specs/sdk.md` §12.
 | Step | Package | State |
 | --- | --- | --- |
 | 1 | `packages/core` — challenge, verify pipeline, events, receipts, nonce cache | **done** |
-| 2 | `coinbase` adapter + Base Sepolia e2e ← first demo | next |
-| 3 | `express` adapter + examples + `doctor` | |
+| 2 | `packages/coinbase` + Base Sepolia e2e ← first demo | **done**, live run pending credentials |
+| 3 | `express` adapter + examples + `doctor` | next |
 | 4 | `ingest` client + cloud ingest + dashboard v1 | |
 | 5 | `hono`, then Python core + FastAPI | |
 | 6 | `payai` adapter (Solana), multi-network challenges | |
+
+The reference `x402-fetch` client pays a Tollway gate end to end in CI, with no
+funds and no network (`packages/coinbase/test/client-walk.test.ts`). The live
+Base Sepolia run is written and wired to a nightly workflow; it needs a
+faucet-funded wallet to have ever run for real.
 
 ## Layout
 
 ```
 packages/core/      protocol logic, framework-agnostic   (MIT)
+packages/coinbase/  CDP facilitator adapter, Base        (MIT)
 golden/             cross-language byte fixtures (§11)
 specs/sdk.md        the build contract
 ```

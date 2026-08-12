@@ -1,0 +1,244 @@
+import { describe, expect, it } from "vitest";
+import { PaymentRequirementsSchema, SettleResponseSchema, VerifyResponseSchema } from "x402/types";
+import { silentLogger } from "@tollway/core";
+import type { ChallengeRequest, PaymentPayload, VerifyContext } from "@tollway/core";
+import { coinbaseFacilitator } from "../src/index.js";
+import { NETWORKS } from "../src/networks.js";
+import { exchange, failingFetch, hangingFetch, replayFetch } from "./replay.js";
+
+const requirements: ChallengeRequest = {
+  route: "/v1/report",
+  resource: "https://api.example.com/v1/report",
+  description: "Access to /v1/report",
+  mimeType: "application/json",
+  network: "base-sepolia",
+  asset: "usdc",
+  amount: 4_000n,
+  payTo: `0x${"1".repeat(40)}`,
+  nonce: "nonce-1",
+  expiresAt: 1_765_432_220,
+  maxTimeoutSeconds: 120,
+};
+
+const payment: PaymentPayload = {
+  x402Version: 1,
+  scheme: "exact",
+  network: "base-sepolia",
+  payload: {
+    signature: `0x${"ab".repeat(65)}`,
+    authorization: {
+      from: "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70",
+      to: `0x${"1".repeat(40)}`,
+      value: "4000",
+      validAfter: "0",
+      validBefore: "1765432220",
+      nonce: `0x${"cd".repeat(32)}`,
+    },
+  },
+};
+
+function context(adapter = coinbaseFacilitator()): VerifyContext {
+  return {
+    scheme: adapter.buildChallenge(requirements),
+    requirements,
+    route: requirements.route,
+    now: 1_765_432_100_000,
+    signal: new AbortController().signal,
+    logger: silentLogger,
+  };
+}
+
+describe("fixtures", () => {
+  // If these drift from the reference schemas the fixtures are lying, and
+  // every test below is worthless.
+  it("verify fixtures match the reference VerifyResponse schema", () => {
+    for (const name of [
+      "verify.ok",
+      "verify.badSignature",
+      "verify.expired",
+      "verify.insufficientFunds",
+      "verify.wrongNetwork",
+      "verify.underpaid",
+      "verify.facilitatorFault",
+    ]) {
+      expect(() => VerifyResponseSchema.parse(exchange(name).response.body), name).not.toThrow();
+    }
+  });
+
+  it("settle fixtures match the reference SettleResponse schema", () => {
+    for (const name of ["settle.ok", "settle.duplicate", "settle.fault"]) {
+      expect(() => SettleResponseSchema.parse(exchange(name).response.body), name).not.toThrow();
+    }
+  });
+});
+
+describe("buildChallenge", () => {
+  it("advertises the real USDC address and EIP-712 domain per network", () => {
+    const adapter = coinbaseFacilitator();
+
+    const sepolia = adapter.buildChallenge(requirements);
+    expect(sepolia.asset).toBe(NETWORKS["base-sepolia"]?.assets["usdc"]?.address);
+    expect(sepolia.extra).toEqual({ name: "USDC", version: "2" });
+
+    const mainnet = adapter.buildChallenge({ ...requirements, network: "base" });
+    expect(mainnet.asset).toBe(NETWORKS["base"]?.assets["usdc"]?.address);
+    // Mainnet USDC signs under "USD Coin"; testnet under "USDC". Getting this
+    // wrong produces signatures that fail with no useful error.
+    expect(mainnet.extra).toEqual({ name: "USD Coin", version: "2" });
+  });
+
+  it("produces a scheme the reference client can parse", () => {
+    const scheme = coinbaseFacilitator().buildChallenge(requirements);
+    expect(() => PaymentRequirementsSchema.parse(scheme)).not.toThrow();
+  });
+
+  it("refuses networks and assets it has no facts for", () => {
+    const adapter = coinbaseFacilitator();
+    expect(() => adapter.buildChallenge({ ...requirements, network: "solana" })).toThrow(
+      /does not support network "solana"/,
+    );
+    expect(() => adapter.buildChallenge({ ...requirements, asset: "doge" })).toThrow(
+      /no address for asset "doge"/,
+    );
+  });
+});
+
+describe("verify", () => {
+  it("verifies then settles, and reports the settlement transaction", async () => {
+    const replay = replayFetch(["verify.ok", "settle.ok"]);
+    const adapter = coinbaseFacilitator({ fetchImpl: replay.fetch });
+    const result = await adapter.verify(payment, context(adapter));
+
+    expect(result).toMatchObject({
+      ok: true,
+      txRef: "0x5a3f8c1e9b2d7a4f6c0e8b1d3a5f7c9e2b4d6a8f0c2e4b6d8a0f2c4e6b8d0a2f",
+      payer: "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70",
+      settledAmount: 4_000n,
+    });
+
+    expect(replay.calls.map((c) => c.url)).toEqual([
+      "https://x402.org/facilitator/verify",
+      "https://x402.org/facilitator/settle",
+    ]);
+    // The wire body is the reference contract, not our own shape.
+    expect(replay.calls[0]?.body).toMatchObject({
+      x402Version: 1,
+      paymentPayload: payment,
+    });
+    expect(() =>
+      PaymentRequirementsSchema.parse(replay.calls[0]?.body.paymentRequirements),
+    ).not.toThrow();
+  });
+
+  it("does not settle when verification fails", async () => {
+    const replay = replayFetch(["verify.badSignature"]);
+    const adapter = coinbaseFacilitator({ fetchImpl: replay.fetch });
+    const result = await adapter.verify(payment, context(adapter));
+
+    expect(result).toMatchObject({ ok: false, code: "invalid_payment" });
+    expect(replay.calls).toHaveLength(1);
+  });
+
+  it("maps facilitator reasons onto Tollway reject codes", async () => {
+    const cases: Array<[string, string]> = [
+      ["verify.expired", "expired"],
+      ["verify.insufficientFunds", "invalid_payment"],
+      ["verify.wrongNetwork", "wrong_network"],
+      ["verify.underpaid", "wrong_amount"],
+    ];
+
+    for (const [fixture, expected] of cases) {
+      const adapter = coinbaseFacilitator({ fetchImpl: replayFetch([fixture]).fetch });
+      const result = await adapter.verify(payment, context(adapter));
+      expect(result.ok, fixture).toBe(false);
+      if (!result.ok) expect(result.code, fixture).toBe(expected);
+    }
+  });
+
+  it("reports a duplicate settlement as a replay", async () => {
+    const adapter = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.ok", "settle.duplicate"]).fetch,
+    });
+    const result = await adapter.verify(payment, context(adapter));
+    expect(result).toMatchObject({ ok: false, code: "replay" });
+  });
+
+  it("skips settlement when the merchant opted out", async () => {
+    const replay = replayFetch(["verify.ok"]);
+    const adapter = coinbaseFacilitator({ fetchImpl: replay.fetch, settle: false });
+    const result = await adapter.verify(payment, context(adapter));
+
+    expect(result.ok).toBe(true);
+    expect(replay.calls).toHaveLength(1);
+    if (result.ok) expect(result.txRef).toBe("unsettled:base-sepolia");
+  });
+
+  it("sends auth headers to the right endpoint", async () => {
+    const replay = replayFetch(["verify.ok", "settle.ok"]);
+    const adapter = coinbaseFacilitator({
+      fetchImpl: replay.fetch,
+      url: "https://api.cdp.coinbase.com/platform/v2/x402",
+      createAuthHeaders: () => ({
+        verify: { authorization: "Bearer verify-jwt" },
+        settle: { authorization: "Bearer settle-jwt" },
+      }),
+    });
+    await adapter.verify(payment, context(adapter));
+
+    expect(replay.calls[0]?.headers["authorization"]).toBe("Bearer verify-jwt");
+    expect(replay.calls[1]?.headers["authorization"]).toBe("Bearer settle-jwt");
+  });
+});
+
+describe("outages are not rejections", () => {
+  // A payer must never be told their payment is bad because our facilitator
+  // is down — that decision belongs to the merchant's fail_open/fail_closed.
+  it("treats a non-JSON gateway page as unreachable", async () => {
+    const adapter = coinbaseFacilitator({ fetchImpl: replayFetch(["gateway.502"]).fetch });
+    await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(
+      /non-JSON body \(status 502\)/,
+    );
+  });
+
+  it("treats a JSON body with no verdict as unreachable", async () => {
+    const adapter = coinbaseFacilitator({ fetchImpl: replayFetch(["gateway.rateLimited"]).fetch });
+    await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(
+      /unrecognised body \(status 429\)/,
+    );
+  });
+
+  it("treats a transport failure as unreachable", async () => {
+    const adapter = coinbaseFacilitator({ fetchImpl: failingFetch() });
+    await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(/ENOTFOUND/);
+  });
+
+  it("treats facilitator-fault reasons as unreachable, not as a bad payment", async () => {
+    const verifyFault = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.facilitatorFault"]).fetch,
+    });
+    await expect(verifyFault.verify(payment, context(verifyFault))).rejects.toThrow(
+      /unexpected_verify_error/,
+    );
+
+    const settleFault = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.ok", "settle.fault"]).fetch,
+    });
+    await expect(settleFault.verify(payment, context(settleFault))).rejects.toThrow(
+      /unexpected_settle_error/,
+    );
+  });
+
+  it("times out rather than hanging the request", async () => {
+    const adapter = coinbaseFacilitator({ fetchImpl: hangingFetch(), timeoutMs: 20 });
+    await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(/call failed/);
+  });
+
+  it("gives up immediately when the gate's signal is already aborted", async () => {
+    const adapter = coinbaseFacilitator({ fetchImpl: hangingFetch() });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      adapter.verify(payment, { ...context(adapter), signal: controller.signal }),
+    ).rejects.toThrow();
+  });
+});

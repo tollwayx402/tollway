@@ -1,0 +1,28 @@
+name: CI
+
+# Every check here is hermetic: no faucet, no live facilitator, no network.
+# A red build must always mean "we broke something", never "the testnet is
+# having a day". The live run lives in nightly.yml.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r typecheck
+      - run: pnpm -r build
+      - run: pnpm -r test
+      - name: golden files are unchanged
+        # A protocol change must be a deliberate, reviewed diff — never an
+        # accident that a test run quietly rewrites.
+        run: git diff --exit-code golden/

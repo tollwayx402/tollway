@@ -1,0 +1,180 @@
+/**
+ * Record real facilitator exchanges into `test/fixtures/exchanges.json`.
+ *
+ *   pnpm --filter @tollway/coinbase record
+ *
+ * Requires a funded Base Sepolia wallet, because a genuine `settle.ok` can only
+ * come from a payment that actually settles:
+ *
+ *   TW_AGENT_KEY   private key of a wallet holding Base Sepolia USDC
+ *   TW_PAY_TO      settlement address to pay
+ *   TW_FACILITATOR facilitator URL (default: the public one)
+ *   TW_CDP_JWT     bearer token, if pointing at CDP
+ *
+ * This is a **manual** job. CI replays what it writes; it never runs this.
+ * Faucet flakiness must not be able to turn a build red.
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createWalletClient, http, publicActions } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
+import { baseSepolia } from "viem/chains";
+import { createGate, decodePaymentHeader } from "@tollway/core";
+import { wrapFetchWithPayment } from "x402-fetch";
+import { coinbaseFacilitator, DEFAULT_FACILITATOR_URL } from "../src/index.ts";
+import { agentWallet, capturePaymentHeader } from "../dev/agent.ts";
+
+const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "../test/fixtures/exchanges.json");
+
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    console.error(`missing ${name}. See the header of this script.`);
+    process.exit(1);
+  }
+  return value;
+}
+
+const facilitatorUrl = process.env["TW_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
+const agentKey = required("TW_AGENT_KEY") as `0x${string}`;
+const payTo = required("TW_PAY_TO");
+
+const recorded: Record<string, unknown> = {};
+
+/** Wraps fetch so every facilitator exchange is captured verbatim. */
+function recordingFetch(label: string): typeof fetch {
+  return (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const url = String(input);
+    const response = await fetch(input as string, init);
+    const clone = response.clone();
+    const text = await clone.text();
+    let body: unknown;
+    try {
+      body = JSON.parse(text);
+    } catch {
+      body = undefined;
+    }
+    const path = url.endsWith("/settle") ? "settle" : "verify";
+    recorded[`${label}.${path}`] = {
+      path,
+      response:
+        body === undefined
+          ? {
+              status: response.status,
+              rawBody: text,
+              contentType: response.headers.get("content-type") ?? "text/plain",
+            }
+          : { status: response.status, body },
+    };
+    console.log(`  recorded ${label}.${path} → ${response.status}`);
+    return response;
+  }) as typeof fetch;
+}
+
+async function main() {
+  const { account } = agentWallet(agentKey);
+  console.log(`recording against ${facilitatorUrl} as ${account.address}\n`);
+
+  const authHeaders = process.env["TW_CDP_JWT"]
+    ? () => {
+        const header = { authorization: `Bearer ${process.env["TW_CDP_JWT"]}` };
+        return { verify: header, settle: header };
+      }
+    : undefined;
+
+  // 1. A payment that verifies and settles.
+  console.log("happy path:");
+  const gate = createGate({
+    price: "$0.004",
+    asset: "usdc",
+    network: "base-sepolia",
+    payTo,
+    resourceBase: "https://record.tollway.local",
+    facilitator: coinbaseFacilitator({
+      url: facilitatorUrl,
+      fetchImpl: recordingFetch("verify.ok"),
+      ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
+    }),
+  });
+
+  const challenge = await gate.handle({ method: "GET", route: "/v1/report", headers: {} });
+  if (challenge.type !== "challenge") throw new Error(`expected a challenge, got ${challenge.type}`);
+
+  // Drive the reference client to produce a real signed payload.
+  const header = await capturePaymentHeader(
+    agentKey,
+    "https://record.tollway.local/v1/report",
+    challenge.body,
+  );
+
+  const paid = await gate.handle({
+    method: "GET",
+    route: "/v1/report",
+    headers: { "x-payment": header },
+  });
+  console.log(`  gate result: ${paid.type}`);
+
+  // 2. The same payload again — a genuine duplicate_settlement from the
+  //    facilitator, which is the one reason we cannot fabricate honestly.
+  console.log("replay path:");
+  const replayGate = createGate({
+    price: "$0.004",
+    asset: "usdc",
+    network: "base-sepolia",
+    payTo,
+    resourceBase: "https://record.tollway.local",
+    facilitator: coinbaseFacilitator({
+      url: facilitatorUrl,
+      fetchImpl: recordingFetch("settle.duplicate"),
+      ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
+    }),
+  });
+  await replayGate.handle({ method: "GET", route: "/v1/report", headers: { "x-payment": header } });
+
+  // 3. A tampered signature — a real invalid_exact_evm_payload_signature.
+  console.log("bad signature path:");
+  const decoded = decodePaymentHeader(header);
+  const tampered = {
+    ...decoded,
+    payload: { ...decoded.payload, signature: `0x${"11".repeat(65)}` },
+  };
+  const badGate = createGate({
+    price: "$0.004",
+    asset: "usdc",
+    network: "base-sepolia",
+    payTo,
+    resourceBase: "https://record.tollway.local",
+    facilitator: coinbaseFacilitator({
+      url: facilitatorUrl,
+      fetchImpl: recordingFetch("verify.badSignature"),
+      ...(authHeaders ? { createAuthHeaders: authHeaders } : {}),
+    }),
+  });
+  await badGate.handle({
+    method: "GET",
+    route: "/v1/report",
+    headers: { "x-payment": btoa(JSON.stringify(tampered)) },
+  });
+
+  const existing = JSON.parse(readFileSync(FIXTURES, "utf8")) as Record<string, unknown>;
+  const merged = {
+    ...existing,
+    ...recorded,
+    _provenance: {
+      status: "RECORDED from a live facilitator",
+      recordedAt: new Date().toISOString(),
+      facilitatorUrl,
+      network: "base-sepolia",
+      note: "Regenerate with `pnpm --filter @tollway/coinbase record`. Entries not overwritten by this run remain synthetic.",
+    },
+  };
+  writeFileSync(FIXTURES, `${JSON.stringify(merged, null, 2)}\n`, "utf8");
+  console.log(`\nwrote ${Object.keys(recorded).length} exchanges to ${FIXTURES}`);
+  console.log("Review the diff before committing — these are the CI contract.");
+}
+
+main().catch((error: unknown) => {
+  console.error(error);
+  process.exit(1);
+});

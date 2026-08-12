@@ -1,0 +1,150 @@
+{
+  "_provenance": {
+    "status": "SYNTHETIC — not yet recorded from a live facilitator",
+    "why": "Recording requires CDP credentials and a funded Base Sepolia wallet, which CI does not have and this machine did not have when these were authored.",
+    "validated": "Every response body below is checked against x402@1.2.0's VerifyResponseSchema / SettleResponseSchema by test/adapter.test.ts, so the shapes are the reference project's, not invented ones.",
+    "howToReplace": "pnpm --filter @tollway/coinbase record  (see scripts/record.ts). Replace these entries wholesale and delete this block; the tests do not care which kind they are.",
+    "recordedAt": null,
+    "facilitatorUrl": null
+  },
+
+  "verify.ok": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": true,
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "settle.ok": {
+    "path": "settle",
+    "response": {
+      "status": 200,
+      "body": {
+        "success": true,
+        "transaction": "0x5a3f8c1e9b2d7a4f6c0e8b1d3a5f7c9e2b4d6a8f0c2e4b6d8a0f2c4e6b8d0a2f",
+        "network": "base-sepolia",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "verify.badSignature": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "invalid_exact_evm_payload_signature",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "verify.expired": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "invalid_exact_evm_payload_authorization_valid_before",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "verify.insufficientFunds": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "insufficient_funds",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "verify.wrongNetwork": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "invalid_network"
+      }
+    }
+  },
+
+  "verify.underpaid": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "invalid_exact_evm_payload_authorization_value",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "verify.facilitatorFault": {
+    "path": "verify",
+    "response": {
+      "status": 200,
+      "body": {
+        "isValid": false,
+        "invalidReason": "unexpected_verify_error"
+      }
+    }
+  },
+
+  "settle.duplicate": {
+    "path": "settle",
+    "response": {
+      "status": 200,
+      "body": {
+        "success": false,
+        "errorReason": "duplicate_settlement",
+        "transaction": "0x",
+        "network": "base-sepolia",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
+      }
+    }
+  },
+
+  "settle.fault": {
+    "path": "settle",
+    "response": {
+      "status": 200,
+      "body": {
+        "success": false,
+        "errorReason": "unexpected_settle_error",
+        "transaction": "0x",
+        "network": "base-sepolia"
+      }
+    }
+  },
+
+  "gateway.502": {
+    "path": "verify",
+    "response": {
+      "status": 502,
+      "contentType": "text/html",
+      "rawBody": "<html><body>502 Bad Gateway</body></html>"
+    }
+  },
+
+  "gateway.rateLimited": {
+    "path": "verify",
+    "response": {
+      "status": 429,
+      "body": {
+        "error": "rate limit exceeded"
+      }
+    }
+  }
+}

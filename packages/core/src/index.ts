@@ -63,6 +63,9 @@ export type { ErrorBody } from "./errors.js";
 
 export { consoleLogger, silentLogger } from "./logger.js";
 
+export { formatConformance, runFacilitatorConformance } from "./conformance.js";
+export type { ConformanceCheck, ConformanceOptions } from "./conformance.js";
+
 export type {
   Asset,
   ChallengeRequest,

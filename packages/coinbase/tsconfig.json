@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // DOM is here for the WebCrypto types (Crypto, CryptoKey, JsonWebKey,
+    // BufferSource) and btoa/atob — not because core touches a browser. The
+    // package must build for Workers as well as Node, so it uses the standard
+    // globals rather than node:crypto.
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"],
+    // Scripts run under `node --experimental-strip-types`, which requires
+    // .ts import specifiers.
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts", "dev/**/*.ts", "scripts/**/*.ts", "vitest.config.ts"]
+}

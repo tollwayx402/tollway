@@ -1,0 +1,32 @@
+name: Nightly live testnet
+
+# The live Base Sepolia run. Separated from CI on purpose: it depends on a
+# faucet-funded wallet and a third-party facilitator, so it can fail for
+# reasons that have nothing to do with our code. Failures here open an issue
+# rather than blocking anyone's merge.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+
+jobs:
+  testnet:
+    runs-on: ubuntu-latest
+    # Skips cleanly on forks and before the secrets exist.
+    if: github.repository == 'tollway/tollway'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -r build
+      - name: live payment on Base Sepolia
+        env:
+          TW_AGENT_KEY: ${{ secrets.TW_TESTNET_AGENT_KEY }}
+          TW_PAY_TO: ${{ secrets.TW_TESTNET_PAY_TO }}
+          TW_FACILITATOR: ${{ secrets.TW_FACILITATOR_URL }}
+          TW_CDP_JWT: ${{ secrets.TW_CDP_JWT }}
+        run: pnpm --filter @tollway/coinbase e2e:testnet
