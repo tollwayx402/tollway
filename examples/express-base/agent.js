@@ -11,7 +11,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
 import { wrapFetchWithPayment } from "x402-fetch";
 
-const URL = "http://localhost:3000/v1/report";
+const URL = process.argv[2] ?? "http://localhost:3000/v1/report";
 
 const unpaid = await fetch(URL);
 console.log(`unpaid  → ${unpaid.status}`);

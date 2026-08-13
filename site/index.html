@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tollway — Toll gates for HTTP routes</title>
+<meta name="description" content="Return a 402, verify the payment, serve the 200. One middleware turns any route into a paid API — no account required.">
+<style>
+  :root {
+    --ink: #0a2540;
+    --ink-soft: #425466;
+    --ink-faint: #6b7c93;
+    --bg: #ffffff;
+    --tint: #f6f9fc;
+    --line: #e6ebf1;
+    --brand: #635bff;
+    --brand-deep: #4f46e5;
+    --amber: #ffb300;
+    --coral: #ff5a5f;
+    --violet: #7a5cff;
+    --cyan: #00d4ff;
+    --code-bg: #0c1a2b;
+    --code-line: #1d3049;
+    --radius: 10px;
+    font-size: 16px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  ::selection { background: rgba(99, 91, 255, .18); }
+  a { color: inherit; text-decoration: none; }
+  code, pre, .mono {
+    font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  /* ---------- nav ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(255, 255, 255, .82);
+    backdrop-filter: saturate(1.6) blur(14px);
+    -webkit-backdrop-filter: saturate(1.6) blur(14px);
+    border-bottom: 1px solid transparent;
+    transition: border-color .25s;
+  }
+  header.scrolled { border-bottom-color: var(--line); }
+  nav {
+    display: flex; align-items: center; gap: 28px;
+    height: 64px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 800; font-size: 1.22rem; letter-spacing: -.02em;
+  }
+  .logo svg { display: block; }
+  .nav-links { display: flex; gap: 24px; font-size: .94rem; font-weight: 500; color: var(--ink-soft); }
+  .nav-links a { transition: color .15s; }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-cta { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: #fff;
+    font-size: .9rem; font-weight: 600;
+    padding: 8px 18px; border-radius: 999px;
+    transition: transform .15s, box-shadow .15s, background .15s;
+  }
+  .pill:hover { background: #16345c; transform: translateY(-1px); }
+  .pill.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line); }
+  .pill.ghost:hover { box-shadow: inset 0 0 0 1.5px var(--ink-faint); }
+  .pill.brand { background: var(--brand); }
+  .pill.brand:hover { background: var(--brand-deep); box-shadow: 0 6px 20px rgba(99, 91, 255, .35); }
+  .pill svg { flex: none; }
+
+  /* ---------- hero ---------- */
+  .hero { position: relative; overflow: hidden; }
+  .ribbon {
+    position: absolute;
+    width: 72%; height: 115%;
+    top: -52%; right: -14%;
+    transform: rotate(-14deg);
+    background: linear-gradient(115deg,
+      var(--amber) 0%, var(--coral) 28%, var(--violet) 58%, var(--cyan) 88%);
+    background-size: 300% 300%;
+    animation: flow 14s ease-in-out infinite;
+    clip-path: polygon(0 34%, 100% 0, 100% 66%, 0 100%);
+    opacity: .92;
+    pointer-events: none;
+  }
+  .ribbon::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(rgba(255,255,255,.08), rgba(255,255,255,0));
+  }
+  @keyframes flow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  .hero-inner {
+    position: relative;
+    display: grid; grid-template-columns: 1.05fr .95fr; gap: 48px;
+    align-items: center;
+    padding: 96px 0 110px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: .82rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--brand-deep);
+    background: rgba(99, 91, 255, .08);
+    border: 1px solid rgba(99, 91, 255, .22);
+    padding: 5px 12px; border-radius: 999px;
+    margin-bottom: 22px;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); animation: pulse 2.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .35 } }
+  h1 {
+    font-size: clamp(2.6rem, 5.4vw, 4.1rem);
+    line-height: 1.04; letter-spacing: -.035em; font-weight: 800;
+  }
+  h1 .grad {
+    background: linear-gradient(100deg, var(--coral), var(--violet) 55%, var(--cyan));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.sub {
+    margin: 22px 0 32px; max-width: 34rem;
+    font-size: 1.22rem; color: var(--ink-soft); line-height: 1.5;
+  }
+  .hero-ctas { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .install {
+    display: inline-flex; align-items: center; gap: 12px;
+    font-size: .92rem; color: var(--ink-soft);
+    background: var(--tint); border: 1px solid var(--line);
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .install:hover { border-color: var(--ink-faint); }
+  .install .prompt { color: var(--brand); font-weight: 700; }
+
+  /* code card */
+  .code-card {
+    position: relative;
+    background: var(--code-bg);
+    border-radius: 14px;
+    box-shadow: 0 30px 60px -18px rgba(10, 37, 64, .45), 0 8px 22px rgba(10, 37, 64, .2);
+    overflow: hidden;
+    transform: rotate(.6deg);
+  }
+  .code-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px; border-bottom: 1px solid var(--code-line);
+  }
+  .code-head .dot2 { width: 11px; height: 11px; border-radius: 50%; }
+  .code-head .name { margin-left: 10px; color: #7d90a8; font-size: .8rem; }
+  .code-card pre {
+    padding: 18px 20px 22px; overflow-x: auto;
+    font-size: .84rem; line-height: 1.62; color: #dbe6f2;
+  }
+  .tok-k { color: #8ab4ff; }   /* keyword */
+  .tok-s { color: #7ce3b1; }   /* string */
+  .tok-f { color: #ffd479; }   /* fn / property */
+  .tok-cm { color: #5d7a99; font-style: italic; }
+  .tok-p { color: #ff9ecf; }   /* price highlight */
+
+  /* ---------- trust strip / terminal ---------- */
+  .strip { background: var(--tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .strip-inner {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+    align-items: center; padding: 64px 0;
+  }
+  .strip h2 { font-size: 1.7rem; letter-spacing: -.02em; margin-bottom: 12px; }
+  .strip p { color: var(--ink-soft); max-width: 30rem; }
+  .term {
+    background: var(--code-bg); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 18px 44px -14px rgba(10,37,64,.4);
+  }
+  .term pre { padding: 18px 20px; font-size: .84rem; line-height: 1.7; color: #c7d6e6; overflow-x: auto; }
+  .t-dim { color: #5d7a99; }
+  .t-402 { color: var(--coral); font-weight: 700; }
+  .t-200 { color: #35d18e; font-weight: 700; }
+  .t-rcpt { color: var(--amber); }
+
+  /* ---------- how it works ---------- */
+  section.how { padding: 96px 0 40px; }
+  .kicker { font-size: .82rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--brand-deep); margin-bottom: 14px; }
+  section h2.big { font-size: clamp(1.9rem, 3.4vw, 2.6rem); letter-spacing: -.03em; line-height: 1.12; max-width: 34rem; }
+  .lede { margin-top: 16px; color: var(--ink-soft); font-size: 1.08rem; max-width: 38rem; }
+  .steps {
+    margin-top: 56px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .step {
+    position: relative;
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px 24px 24px;
+    transition: transform .18s, box-shadow .18s;
+  }
+  .step:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -12px rgba(10,37,64,.18); }
+  .step .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 40px; height: 40px; border-radius: 10px;
+    font-weight: 800; font-size: 1rem; color: #fff;
+    margin-bottom: 16px;
+  }
+  .step:nth-child(1) .num { background: linear-gradient(135deg, var(--coral), #ff8a5c); }
+  .step:nth-child(2) .num { background: linear-gradient(135deg, var(--violet), var(--brand)); }
+  .step:nth-child(3) .num { background: linear-gradient(135deg, #14b8a6, #35d18e); }
+  .step h3 { font-size: 1.08rem; margin-bottom: 8px; letter-spacing: -.01em; }
+  .step h3 code { font-size: .95em; background: var(--tint); border: 1px solid var(--line); padding: 1px 7px; border-radius: 6px; }
+  .step p { color: var(--ink-soft); font-size: .95rem; }
+
+  /* ---------- features ---------- */
+  section.features { padding: 80px 0 96px; }
+  .grid {
+    margin-top: 52px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+  }
+  .card {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 26px 24px;
+    transition: transform .18s, box-shadow .18s, border-color .18s;
+  }
+  .card:hover { transform: translateY(-3px); box-shadow: 0 14px 34px -12px rgba(10,37,64,.16); border-color: #d5deea; }
+  .card .ico {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--tint); border: 1px solid var(--line);
+    margin-bottom: 16px;
+  }
+  .card h3 { font-size: 1.04rem; margin-bottom: 8px; letter-spacing: -.01em; }
+  .card p { color: var(--ink-soft); font-size: .93rem; }
+  .card p code { background: var(--tint); border: 1px solid var(--line); padding: 0 5px; border-radius: 5px; font-size: .86em; }
+
+  /* ---------- networks ---------- */
+  .nets { background: var(--tint); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 72px 0; }
+  .nets-inner { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; }
+  .nets h2 { font-size: 1.8rem; letter-spacing: -.02em; margin-bottom: 12px; }
+  .nets p { color: var(--ink-soft); max-width: 30rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip {
+    background: #fff; border: 1px solid var(--line); border-radius: 999px;
+    padding: 8px 16px; font-size: .9rem; font-weight: 600; color: var(--ink-soft);
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .chip:hover { transform: translateY(-2px); box-shadow: 0 8px 18px -8px rgba(10,37,64,.25); }
+  .chip .sw { width: 9px; height: 9px; border-radius: 50%; }
+
+  /* ---------- final CTA ---------- */
+  .cta-final {
+    position: relative; overflow: hidden;
+    background: var(--ink); color: #fff;
+    padding: 96px 0;
+  }
+  .cta-final .glow {
+    position: absolute; width: 720px; height: 720px; border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(122, 92, 255, .5), transparent 70%);
+    top: -320px; right: -160px; pointer-events: none;
+  }
+  .cta-final .glow.two {
+    background: radial-gradient(closest-side, rgba(255, 90, 95, .35), transparent 70%);
+    top: auto; bottom: -380px; left: -200px; right: auto;
+  }
+  .cta-inner { position: relative; text-align: center; }
+  .cta-final h2 { font-size: clamp(1.9rem, 3.6vw, 2.7rem); letter-spacing: -.03em; }
+  .cta-final p { margin: 16px auto 30px; color: #a3b3c9; max-width: 34rem; font-size: 1.08rem; }
+  .cmd {
+    display: inline-flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 12px; padding: 14px 22px;
+    font-size: .98rem; color: #e8eef6; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .cmd:hover { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.09); }
+  .cmd .prompt { color: var(--cyan); font-weight: 700; }
+  .cta-note { margin-top: 18px; font-size: .86rem; color: #7d90a8; }
+
+  /* ---------- footer ---------- */
+  footer { background: #071a30; color: #8fa3bb; padding: 44px 0; font-size: .9rem; }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .foot .logo { color: #fff; font-size: 1.05rem; }
+  .foot a:hover { color: #fff; }
+  .foot-links { display: flex; gap: 22px; }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.in { opacity: 1; transform: none; }
+
+  .copied { color: #35d18e !important; }
+
+  @media (max-width: 900px) {
+    .hero-inner, .strip-inner, .nets-inner { grid-template-columns: 1fr; padding-top: 64px; }
+    .hero-inner { padding: 64px 0 72px; }
+    .steps, .grid { grid-template-columns: 1fr; }
+    .nav-links { display: none; }
+    .ribbon { opacity: .5; }
+    .code-card { transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="#">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="24" height="24" rx="6" fill="#0a2540"/>
+          <path d="M6 9h14M6 9l2 11M20 9l-2 11M10.5 9l.8 11M15.5 9l-.8 11" stroke="url(#lg)" stroke-width="1.9" stroke-linecap="round"/>
+          <defs><linearGradient id="lg" x1="6" y1="9" x2="20" y2="20"><stop stop-color="#ffb300"/><stop offset=".5" stop-color="#ff5a5f"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs>
+        </svg>
+        Tollway
+      </a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#networks">Networks</a>
+        <a href="https://github.com" rel="noopener">GitHub</a>
+      </div>
+      <div class="nav-cta">
+        <a class="pill ghost" href="#how">Docs</a>
+        <a class="pill brand" href="#get-started">Get started</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="ribbon" aria-hidden="true"></div>
+  <div class="wrap hero-inner">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> x402 · pay-per-request</span>
+      <h1>Toll gates for your <span class="grad">HTTP routes.</span></h1>
+      <p class="sub">Return a <strong>402</strong>, verify the payment, serve the <strong>200</strong>. One middleware turns any route into a paid API — priced per request, settled on-chain, no account required.</p>
+      <div class="hero-ctas">
+        <a class="pill brand" href="#get-started">Start collecting tolls
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <button class="install" data-copy="npm i @tollway/gate" title="Copy">
+          <span class="prompt">$</span> <span class="mono">npm i @tollway/gate</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="code-card reveal in">
+      <div class="code-head">
+        <span class="dot2" style="background:#ff5f57"></span>
+        <span class="dot2" style="background:#febc2e"></span>
+        <span class="dot2" style="background:#28c840"></span>
+        <span class="name mono">server.js — a paid API in 20 lines</span>
+      </div>
+<pre><code><span class="tok-k">import</span> express <span class="tok-k">from</span> <span class="tok-s">"express"</span>;
+<span class="tok-k">import</span> { tollway, coinbaseFacilitator } <span class="tok-k">from</span> <span class="tok-s">"@tollway/gate"</span>;
+
+<span class="tok-k">const</span> app = <span class="tok-f">express</span>();
+
+app.<span class="tok-f">use</span>(<span class="tok-s">"/v1/report"</span>, <span class="tok-f">tollway</span>({
+  <span class="tok-f">price</span>: <span class="tok-p">"$0.004"</span>,
+  <span class="tok-f">network</span>: <span class="tok-s">"base-sepolia"</span>,
+  <span class="tok-f">payTo</span>: process.env.TW_ADDRESS,
+  <span class="tok-f">facilitator</span>: <span class="tok-f">coinbaseFacilitator</span>(),
+}));
+
+app.<span class="tok-f">get</span>(<span class="tok-s">"/v1/report"</span>, (_req, res) =&gt; {
+  res.<span class="tok-f">json</span>({ <span class="tok-f">report</span>: <span class="tok-s">"the paid content"</span> });
+});
+
+app.<span class="tok-f">listen</span>(<span class="tok-p">3000</span>);</code></pre>
+    </div>
+  </div>
+</section>
+
+<div class="strip">
+  <div class="wrap strip-inner">
+    <div class="reveal">
+      <h2>Agents pay it end to end.</h2>
+      <p>Any x402 client — including the reference <code class="mono">x402-fetch</code> — hits the gate, reads the challenge, pays, and retries. The whole loop runs in CI with no funds and no network.</p>
+    </div>
+    <div class="term reveal">
+<pre><span class="t-dim">$</span> node agent.js
+unpaid  → <span class="t-402">402 Payment Required</span>
+<span class="t-dim">  challenge: $0.004 USDC on base-sepolia</span>
+
+<span class="t-dim">$</span> TW_AGENT_KEY=0x… node agent.js
+paid    → <span class="t-200">200 OK</span>
+receipt → <span class="t-rcpt">x-tollway-receipt: eyJhbGciOiJFZERTQSJ9…</span>
+<span class="t-dim">  { "report": "the paid content" }</span></pre>
+    </div>
+  </div>
+</div>
+
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="kicker reveal">How it works</div>
+    <h2 class="big reveal">Three status codes. That's the whole protocol.</h2>
+    <p class="lede reveal">Tollway speaks x402 — the payment-required flow HTTP always reserved but never shipped. No API keys, no checkout pages, no invoicing.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <span class="num">402</span>
+        <h3>Challenge</h3>
+        <p>An unpaid request gets a signed challenge: the price, the network, and where to pay. Machine-readable, so agents handle it without a human in the loop.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num">✓</span>
+        <h3>Verify</h3>
+        <p>The client pays and retries with proof. Tollway verifies it through the facilitator — settlement-gated, nonce-cached, replay-safe.</p>
+      </div>
+      <div class="step reveal">
+        <span class="num">200</span>
+        <h3>Serve</h3>
+        <p>Your handler runs exactly as before. The response carries a signed receipt header the caller can keep as proof of purchase.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="kicker reveal">Why Tollway</div>
+    <h2 class="big reveal">Everything a merchant needs, MIT-licensed.</h2>
+    <p class="lede reveal">The core protocol, the adapters, the CLI — all open. The cloud is additive, never required: a standalone install has zero proprietary code in its tree.</p>
+    <div class="grid">
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6 13l-4-4 4-4M12 5l4 4-4 4" stroke="#635bff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Your framework, one line</h3>
+        <p>Middleware for <code>Express</code>, <code>Hono</code> (edge-ready), and <code>FastAPI</code>. Same wire format, same receipts, everywhere you run.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5l6.5 3.75v7.5L9 16.5l-6.5-3.75v-7.5L9 1.5z" stroke="#ff5a5f" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 9v7.5M9 9L2.5 5.25M9 9l6.5-3.75" stroke="#ff5a5f" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+        <h3>Byte-for-byte Python parity</h3>
+        <p>The Python port reproduces the TypeScript wire format exactly. Golden cross-language fixtures are the contract, and CI holds both suites to them.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="8" width="14" height="8" rx="2" stroke="#ffb300" stroke-width="1.6"/><path d="M5.5 8V5.5a3.5 3.5 0 0 1 7 0V8" stroke="#ffb300" stroke-width="1.6"/></svg></div>
+        <h3>Replay-safe by design</h3>
+        <p>Signed challenges, a nonce cache, and settleability-gated verification. A payment proof is good for exactly one response.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5c2.5 2.6 2.5 12.4 0 15M9 1.5c-2.5 2.6-2.5 12.4 0 15M1.5 9h15M2.6 5h12.8M2.6 13h12.8" stroke="#00b8e0" stroke-width="1.4" stroke-linecap="round"/><circle cx="9" cy="9" r="7.5" stroke="#00b8e0" stroke-width="1.6"/></svg></div>
+        <h3>15 EVM networks</h3>
+        <p>Every client-parseable EVM network Coinbase's facilitator settles on, gated by settleability — plus a Solana adapter on the roadmap.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 1.5l6 2.5v4c0 4-2.6 7-6 8.5-3.4-1.5-6-4.5-6-8.5v-4l6-2.5z" stroke="#35d18e" stroke-width="1.6" stroke-linejoin="round"/><path d="M6.5 9l1.8 1.8L11.8 7" stroke="#35d18e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Spam &amp; abuse handled</h3>
+        <p>Token buckets, automatic 429s, and a payer denylist ship in core. Event delivery stays off the halt path, so the cloud can never take your API down.</p>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2.5" stroke="#7a5cff" stroke-width="1.6"/><path d="M5.5 11.5v-3M9 11.5v-6M12.5 11.5v-4.5" stroke="#7a5cff" stroke-width="1.7" stroke-linecap="round"/></svg></div>
+        <h3>Cloud when you want it</h3>
+        <p>Opt into the ingest service for live events and a revenue dashboard. It's lazy-loaded as an optional peer — your gate never depends on it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="nets" id="networks">
+  <div class="wrap nets-inner">
+    <div class="reveal">
+      <h2>Settled where your users are.</h2>
+      <p>Price routes in dollars; settle in USDC on the network of your choice. Tollway only offers networks the facilitator can actually settle — no dead-end challenges.</p>
+    </div>
+    <div class="chips reveal">
+      <span class="chip"><span class="sw" style="background:#0052ff"></span>Base</span>
+      <span class="chip"><span class="sw" style="background:#28a0f0"></span>Arbitrum</span>
+      <span class="chip"><span class="sw" style="background:#ff0420"></span>Optimism</span>
+      <span class="chip"><span class="sw" style="background:#8247e5"></span>Polygon</span>
+      <span class="chip"><span class="sw" style="background:#627eea"></span>Ethereum</span>
+      <span class="chip"><span class="sw" style="background:#e84142"></span>Avalanche</span>
+      <span class="chip"><span class="sw" style="background:#00d4ff"></span>Sei</span>
+      <span class="chip"><span class="sw" style="background:#f0b90b"></span>+ 8 more EVM</span>
+      <span class="chip" style="border-style:dashed"><span class="sw" style="background:#9945ff"></span>Solana — next</span>
+    </div>
+  </div>
+</div>
+
+<div class="cta-final" id="get-started">
+  <div class="glow"></div><div class="glow two"></div>
+  <div class="wrap cta-inner">
+    <h2 class="reveal">Open the gate in one command.</h2>
+    <p class="reveal">The doctor checks your wallet, your network, and your facilitator, then prints the exact middleware to paste. First toll in minutes.</p>
+    <button class="cmd reveal" data-copy="npx @tollway/gate doctor --pay-to 0xYourAddress --network base-sepolia">
+      <span class="prompt">$</span>
+      <span class="mono">npx @tollway/gate doctor --pay-to 0xYou… --network base-sepolia</span>
+      <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M9.5 4.5v-2a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2" stroke="currentColor" stroke-width="1.3"/></svg>
+    </button>
+    <div class="cta-note reveal">No account. No keys to provision. MIT-licensed core.</div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap foot">
+    <a class="logo" href="#">
+      <svg width="22" height="22" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="24" height="24" rx="6" fill="#122d4d"/>
+        <path d="M6 9h14M6 9l2 11M20 9l-2 11M10.5 9l.8 11M15.5 9l-.8 11" stroke="url(#lg2)" stroke-width="1.9" stroke-linecap="round"/>
+        <defs><linearGradient id="lg2" x1="6" y1="9" x2="20" y2="20"><stop stop-color="#ffb300"/><stop offset=".5" stop-color="#ff5a5f"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs>
+      </svg>
+      Tollway
+    </a>
+    <div class="foot-links">
+      <a href="#how">Protocol</a>
+      <a href="#features">Packages</a>
+      <a href="https://github.com" rel="noopener">GitHub</a>
+      <a href="#">License</a>
+    </div>
+    <div>© 2026 Tollway. Core is MIT.</div>
+  </div>
+</footer>
+
+<script>
+  // sticky nav border
+  const hdr = document.getElementById('hdr');
+  addEventListener('scroll', () => hdr.classList.toggle('scrolled', scrollY > 8), { passive: true });
+
+  // scroll reveal
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }, { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  // fallback: if the tab is hidden or IO is throttled, reveal anything in view
+  const sweep = () => {
+    const vh = innerHeight;
+    document.querySelectorAll('.reveal:not(.in)').forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.top < vh && r.bottom > 0) el.classList.add('in');
+    });
+  };
+  addEventListener('scroll', sweep, { passive: true });
+  addEventListener('load', sweep);
+  setInterval(sweep, 800);
+
+  // copy-to-clipboard buttons
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(btn.dataset.copy); } catch {}
+      const label = btn.querySelector('.mono');
+      const prev = label.textContent;
+      label.textContent = 'copied ✓';
+      label.classList.add('copied');
+      setTimeout(() => { label.textContent = prev; label.classList.remove('copied'); }, 1400);
+    });
+  });
+</script>
+</body>
+</html>
