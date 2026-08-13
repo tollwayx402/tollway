@@ -1,0 +1,28 @@
+Business Source License 1.1
+
+PARAMETERS
+
+    Licensor:             Daniel <hello@danield.dev>
+    Licensed Work:        tollway-ingest (Python)
+    Additional Use Grant: You may use the Licensed Work in production to send
+                          your own telemetry to a Tollway-compatible ingest
+                          endpoint, including one you host yourself. You may
+                          not offer the Licensed Work, or a derivative of it,
+                          as a hosted or managed service to third parties.
+    Change Date:          2030-08-12
+    Change License:       MIT
+
+-------------------------------------------------------------------------------
+
+NOTICE
+
+This file records the BSL 1.1 parameters for this package. The canonical,
+full license text is published at https://mariadb.com/bsl11/ and MUST be
+pasted here verbatim, beneath these parameters, before this package is
+published to npm — a parameters block alone is not a license grant.
+
+Everything else in this repository (`@tollway/core`, `@tollway/express`,
+`@tollway/coinbase`, `@tollway/gate`) is MIT, and none of it depends on this
+package. The SDK gates routes, verifies payments and issues receipts with no
+Tollway account and no BSL code in the tree; this package is additive, exactly
+as specs/sdk.md §1.1 requires.

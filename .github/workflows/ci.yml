@@ -48,3 +48,8 @@ jobs:
         # Includes the §11 golden tests, which compare this port's bytes
         # against the fixtures the TypeScript suite produced.
         run: python -m pytest -q
+      - name: ingest client (BSL)
+        working-directory: packages/ingest-py
+        run: |
+          pip install -e ".[dev]"
+          python -m pytest -q

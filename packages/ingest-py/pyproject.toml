@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tollway-ingest"
+version = "0.1.0"
+description = "Tollway cloud event client for Python: batches gate events to a Tollway-compatible ingest endpoint."
+readme = "README.md"
+license = { text = "BUSL-1.1" }
+requires-python = ">=3.9"
+authors = [{ name = "Daniel", email = "hello@danield.dev" }]
+# Deliberately zero runtime dependencies: stdlib threading, gzip and urllib.
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tollway_ingest"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
