@@ -38,6 +38,13 @@ from .events import EventBus, EventSink
 from .facilitator import FacilitatorAdapter, VerifyResult, adapter_for_network, resolve_facilitator
 from .nonce import MemoryNonceStore, NonceStore
 from .price import asset_decimals, format_atomic, parse_price
+from .ratelimit import (
+    Denylist,
+    MemoryRateLimitStore,
+    RateLimitStore,
+    is_denied,
+    payer_hint,
+)
 from .receipts import Signer, create_ephemeral_signer, make_receipt, sign_receipt
 
 __all__ = ["Gate", "GateRequest", "GateResult", "create_gate", "payment_replay_key"]
@@ -133,6 +140,9 @@ class Gate:
         replay_ttl_ms: int = DEFAULT_REPLAY_TTL_MS,
         nonce_store: Optional[NonceStore] = None,
         signer: Optional[Signer] = None,
+        rate_limit: Optional[Dict[str, Any]] = None,
+        rate_limit_store: Optional[RateLimitStore] = None,
+        denylist: Optional[Denylist] = None,
         on_event: Optional[EventSink] = None,
         sinks: Optional[List[EventSink]] = None,
         logger: Optional[logging.Logger] = None,
@@ -205,6 +215,16 @@ class Gate:
         self._nonces = nonce_store or MemoryNonceStore(clock=self._clock)
         self._signer = signer
 
+        # §9: config-flag simple. rate_limit keys: challenges_per_minute_per_ip,
+        # attempts_per_minute_per_payer, burst.
+        self._rate_limit = rate_limit or {}
+        self._rate_store = rate_limit_store or MemoryRateLimitStore(clock=self._clock)
+        self._denylist = denylist
+        for key in ("challenges_per_minute_per_ip", "attempts_per_minute_per_payer"):
+            value = self._rate_limit.get(key)
+            if value is not None and (not isinstance(value, (int, float)) or value <= 0):
+                raise TollwayConfigError(f"rate_limit.{key} must be a positive number, got {value!r}")
+
         all_sinks: List[EventSink] = []
         if on_event is not None:
             all_sinks.append(on_event)
@@ -267,12 +287,29 @@ class Gate:
 
         header = get_header(req.headers, PAYMENT_HEADER)
         if header is None:
+            # §9: unpaid first contacts are the free-to-send traffic. Inert
+            # without a client IP — a spoofable key punishes the innocent.
+            rate = self._rate_limit.get("challenges_per_minute_per_ip")
+            if rate is not None and req.ip:
+                burst = self._rate_limit.get("burst", rate)
+                if not self._rate_store.take(f"ip:{req.ip}", rate, burst):
+                    return self._too_many_requests()
             return self._issue_challenge(ctx)
 
         try:
             payment = decode_payment_header(header)
         except PaymentDecodeError as error:
             return self._reject(ctx, "invalid_payment", str(error))
+
+        # §9: shed denied and over-limit payers before the facilitator call.
+        hint = payer_hint(payment["payload"])
+        if is_denied(self._denylist, hint):
+            return self._payer_denied(route, hint or "")
+        payer_rate = self._rate_limit.get("attempts_per_minute_per_payer")
+        if payer_rate is not None and hint is not None:
+            burst = self._rate_limit.get("burst", payer_rate)
+            if not self._rate_store.take(f"payer:{hint.lower()}", payer_rate, burst):
+                return self._too_many_requests()
 
         return await self._verify_and_pass(ctx, payment)
 
@@ -414,6 +451,11 @@ class Gate:
                 adapter.id,
             )
 
+        # The verified payer is authoritative; the pre-verify check only saw a
+        # hint the payload could lie about.
+        if is_denied(self._denylist, result.payer):
+            return self._payer_denied(ctx["route"], result.payer)
+
         # Consume last: a payload that failed verification stays retriable, one
         # that succeeded is burned for both its hash and its on-chain ref.
         if not self._nonces.consume(replay_key, self._replay_ttl_ms):
@@ -527,6 +569,32 @@ class Gate:
                 "Payment facilitator is unavailable; the request was not served.",
             ),
             code="facilitator_unreachable",
+        )
+
+    def _too_many_requests(self) -> GateResult:
+        """§9 auto-429. Emits NO event — shedding load must not rebuild the
+        flood inside the event stream."""
+        return GateResult(
+            "reject",
+            status=429,
+            headers={**JSON_HEADERS, "retry-after": "60"},
+            body=error_body("rate_limited", "Too many requests; slow down and retry."),
+            code="rate_limited",
+        )
+
+    def _payer_denied(self, route: str, payer: str) -> GateResult:
+        """§9 denylist. This one IS an event — a denied payer paying is a fact."""
+        self.events.emit(
+            "toll.rejected",
+            route,
+            {"code": "payer_denied", "message": "Payer address is denylisted.", "payer": payer},
+        )
+        return GateResult(
+            "reject",
+            status=403,
+            headers=dict(JSON_HEADERS),
+            body=error_body("payer_denied", "This payer address is not accepted here."),
+            code="payer_denied",
         )
 
     def _no_scheme(self, route: str) -> GateResult:

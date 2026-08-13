@@ -19,6 +19,14 @@ import {
 import { adapterForNetwork, resolveFacilitator, type FacilitatorSpec } from "./facilitator.js";
 import { silentLogger } from "./logger.js";
 import { MemoryNonceStore, type NonceStore } from "./nonce.js";
+import {
+  MemoryRateLimitStore,
+  isDenied,
+  payerHint,
+  type Denylist,
+  type RateLimitOptions,
+  type RateLimitStore,
+} from "./ratelimit.js";
 import { assetDecimals, formatAtomic, parsePrice, resolvePrice } from "./price.js";
 import {
   createEphemeralSigner,
@@ -81,6 +89,17 @@ export interface GateOptions {
   nonceStore?: NonceStore;
   /** Standalone mode generates an ephemeral Ed25519 key when omitted. */
   signer?: Signer | Promise<Signer>;
+  /**
+   * §9 spam & abuse: per-IP challenge limits and per-payer attempt limits,
+   * token bucket, auto-429. Off unless configured.
+   */
+  rateLimit?: RateLimitOptions;
+  /**
+   * §9: payer addresses to refuse with 403. Checked best-effort before the
+   * facilitator call (from the payload) and authoritatively after it (from the
+   * verified payer). A function makes remote-config-driven lists live.
+   */
+  denylist?: Denylist;
   /** Local sink, always called (§3.1). */
   onEvent?: EventSink;
   /** Additional sinks — the cloud ingest client attaches here. */
@@ -154,6 +173,9 @@ export class Gate {
   readonly #newNonce: () => string;
   readonly #newId: (prefix: string) => string;
   readonly #resourceBase: string | undefined;
+  readonly #rateLimit: RateLimitOptions | undefined;
+  readonly #rateStore: RateLimitStore;
+  readonly #denylist: Denylist | undefined;
   #signer: Signer | Promise<Signer> | undefined;
 
   constructor(options: GateOptions) {
@@ -223,6 +245,22 @@ export class Gate {
     this.#nonces = options.nonceStore ?? new MemoryNonceStore({ clock: this.#clock });
     this.#signer = options.signer;
 
+    this.#rateLimit = options.rateLimit;
+    this.#rateStore =
+      options.rateLimit?.store ?? new MemoryRateLimitStore({ clock: this.#clock });
+    this.#denylist = options.denylist;
+    if (options.rateLimit !== undefined) {
+      const { challengesPerMinutePerIp, attemptsPerMinutePerPayer } = options.rateLimit;
+      for (const [name, rate] of [
+        ["challengesPerMinutePerIp", challengesPerMinutePerIp],
+        ["attemptsPerMinutePerPayer", attemptsPerMinutePerPayer],
+      ] as const) {
+        if (rate !== undefined && (!Number.isFinite(rate) || rate <= 0)) {
+          throw new TollwayConfigError(`rateLimit.${name} must be a positive number, got ${rate}`);
+        }
+      }
+    }
+
     const sinks: EventSink[] = [];
     if (options.onEvent) sinks.push(options.onEvent);
     if (options.sinks) sinks.push(...options.sinks);
@@ -291,6 +329,16 @@ export class Gate {
 
     const header = getHeader(req.headers, PAYMENT_HEADER);
     if (header === undefined) {
+      // §9: unpaid first contacts are the free-to-send traffic, so this is
+      // where the per-IP bucket sits. Inert without a client IP — limiting on
+      // a spoofable or absent key only punishes the innocent.
+      const rate = this.#rateLimit?.challengesPerMinutePerIp;
+      if (rate !== undefined && req.ip !== undefined && req.ip !== "") {
+        const burst = this.#rateLimit?.burst ?? rate;
+        if (!(await this.#rateStore.take(`ip:${req.ip}`, rate, burst))) {
+          return this.#tooManyRequests();
+        }
+      }
       return this.#issueChallenge(ctx);
     }
 
@@ -300,6 +348,21 @@ export class Gate {
     } catch (error) {
       const message = error instanceof PaymentDecodeError ? error.message : "Malformed payment.";
       return this.#reject(ctx, "invalid_payment", message);
+    }
+
+    // §9: shed denied and over-limit payers BEFORE the facilitator call. The
+    // hint comes from the unverified payload, so the verified payer is checked
+    // again after — this is cost shedding, not the enforcement point.
+    const hint = payerHint(payment.payload);
+    if (isDenied(this.#denylist, hint)) {
+      return this.#payerDenied(route, hint!);
+    }
+    const payerRate = this.#rateLimit?.attemptsPerMinutePerPayer;
+    if (payerRate !== undefined && hint !== undefined) {
+      const burst = this.#rateLimit?.burst ?? payerRate;
+      if (!(await this.#rateStore.take(`payer:${hint.toLowerCase()}`, payerRate, burst))) {
+        return this.#tooManyRequests();
+      }
     }
 
     return this.#verifyAndPass(ctx, payment);
@@ -470,6 +533,12 @@ export class Gate {
       );
     }
 
+    // The verified payer is authoritative; the pre-verify check only saw a
+    // hint the payload could lie about.
+    if (isDenied(this.#denylist, result.payer)) {
+      return this.#payerDenied(route, result.payer);
+    }
+
     // Consume last: a payload that failed verification stays retriable, one
     // that succeeded is burned for both its own hash and its on-chain ref.
     if (!(await this.#nonces.consume(replayKey, this.#replayTtlMs))) {
@@ -569,6 +638,36 @@ export class Gate {
       headers: { ...JSON_HEADERS },
       body: buildChallengeBody(built?.accepts ?? [], code, message),
       code,
+    };
+  }
+
+  /**
+   * §9 auto-429. Deliberately emits NO event: rate limiting exists to shed
+   * load, and a per-429 event would rebuild the flood inside the event stream.
+   */
+  #tooManyRequests(): GateHalt {
+    return {
+      type: "reject",
+      status: 429,
+      headers: { ...JSON_HEADERS, "retry-after": "60" },
+      body: errorBody("rate_limited", "Too many requests; slow down and retry."),
+      code: "rate_limited",
+    };
+  }
+
+  /** §9 denylist. This one IS an event — a denied payer paying is a fact. */
+  #payerDenied(route: string, payer: string): GateHalt {
+    this.events.emit("toll.rejected", route, {
+      code: "payer_denied",
+      message: "Payer address is denylisted.",
+      payer,
+    });
+    return {
+      type: "reject",
+      status: 403,
+      headers: { ...JSON_HEADERS },
+      body: errorBody("payer_denied", "This payer address is not accepted here."),
+      code: "payer_denied",
     };
   }
 

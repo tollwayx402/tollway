@@ -44,6 +44,7 @@ from .facilitator import (
 from .gate import Gate, GateRequest, GateResult, create_gate, payment_replay_key
 from .nonce import MemoryNonceStore, NonceStore
 from .price import ASSET_DECIMALS, asset_decimals, format_atomic, parse_price
+from .ratelimit import MemoryRateLimitStore, RateLimitStore, is_denied, payer_hint
 from .receipts import (
     Signer,
     create_ephemeral_signer,
@@ -75,6 +76,8 @@ __all__ = [
     "GateRequest",
     "GateResult",
     "MemoryNonceStore",
+    "MemoryRateLimitStore",
+    "RateLimitStore",
     "NonceStore",
     "PaymentDecodeError",
     "Signer",
@@ -95,8 +98,10 @@ __all__ = [
     "format_atomic",
     "get_facilitator",
     "get_header",
+    "is_denied",
     "make_receipt",
     "parse_price",
+    "payer_hint",
     "payload_expiry",
     "payment_replay_key",
     "public_key_hex",

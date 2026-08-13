@@ -49,6 +49,14 @@ export {
 export type { Receipt, Signer, SignedDocument, UnsignedReceipt } from "./receipts.js";
 
 export { MemoryNonceStore } from "./nonce.js";
+
+export { MemoryRateLimitStore, isDenied, payerHint } from "./ratelimit.js";
+export type {
+  Denylist,
+  MemoryRateLimitStoreOptions,
+  RateLimitOptions,
+  RateLimitStore,
+} from "./ratelimit.js";
 export type { MemoryNonceStoreOptions, NonceStore } from "./nonce.js";
 
 export { ASSET_DECIMALS, assetDecimals, formatAtomic, parsePrice, resolvePrice } from "./price.js";
