@@ -13,6 +13,7 @@ import type { Express, NextFunction, Request, Response } from "express";
 import { signDocument, verifyDocument, type Signer, type TollwayEvent } from "@tollway/core";
 import { EventStore, type RefundRecord } from "./store.js";
 import { dashboardHtml } from "./dashboard.js";
+import { errorDocsHtml } from "./docs.js";
 
 export interface MerchantAccount {
   merchant: string;
@@ -205,6 +206,12 @@ export function createServer(options: ServerOptions): Express {
 
   app.get("/", (_req, res) => {
     res.type("html").send(dashboardHtml());
+  });
+
+  // §10: every error body the SDK emits links to /docs/errors#<code>. Served
+  // here so the links resolve as soon as anything sits behind the domain.
+  app.get("/docs/errors", (_req, res) => {
+    res.type("html").send(errorDocsHtml());
   });
 
   app.use((_req, res) => {

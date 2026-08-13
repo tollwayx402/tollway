@@ -14,7 +14,12 @@ Build order is `specs/sdk.md` §12.
 | 3 | `packages/express` + `packages/gate` (`doctor`) + examples | **done** |
 | 4 | `packages/ingest` + `services/ingest` + dashboard v1 | **done** |
 | 5 | `packages/hono`, `packages/python` (core + FastAPI) | **done** |
-| 6 | `payai` adapter (Solana), multi-network challenges | next |
+| 6 | `payai` adapter (Solana), multi-network challenges | ⚠️ Solana adapter pending; multi-network EVM done |
+
+**Sweep (post-step-5):** all 15 client-parseable EVM networks with verified
+asset facts, settleability-gated with a `doctor` /supported check · §9 rate
+limits + denylist (TS + Py) · `tollway-ingest` Python cloud client ·
+FastAPI + Workers examples · Dockerfile + self-served `/docs/errors`.
 
 The reference `x402-fetch` client pays a Tollway gate end to end in CI, with no
 funds and no network (`packages/coinbase/test/client-walk.test.ts`). The live
@@ -34,6 +39,7 @@ packages/express/   Express middleware                   (MIT)
 packages/gate/      umbrella install + `doctor` CLI      (MIT)
 packages/hono/      Hono middleware, edge-ready           (MIT)
 packages/python/    Python core + FastAPI adapter        (MIT)
+packages/ingest-py/ Python cloud event client            (BSL)
 packages/ingest/    cloud event client + signed config   (BSL)
 services/ingest/    cloud ingest API + dashboard v1      (BSL)
 examples/           Express + Base, in 20 lines

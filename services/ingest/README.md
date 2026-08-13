@@ -60,6 +60,23 @@ replacement keeps the shape: log authoritative, projections derived.
 | `TW_RECEIPT_KEYS` | `merchant:publicKeyHex` pairs, for receipt verification |
 | `TW_ROUTES` | JSON of per-merchant route config to serve |
 
+## Deploy
+
+```bash
+docker build -f services/ingest/Dockerfile -t tollway-ingest .   # from the repo root
+docker run -p 8787:8787 -v tollway-data:/data \
+  -e TW_API_KEYS='sk_live_x:acct_9d2' tollway-ingest
+```
+
+**Note: the Dockerfile has not been built on this machine (no Docker here) —
+verify the first build before pointing DNS at it.**
+
+Point `ingest.tollway.sh` (and `tollway.sh`, until a real docs site exists) at
+it behind any TLS-terminating proxy. `GET /docs/errors` serves the §10 error
+reference, so the `doc` links in every SDK error body resolve the moment DNS
+does. Events are JSONL under `/data` — that volume IS the database; snapshot it
+like one.
+
 ## Not in v1, deliberately
 
 Keys live in an env var and are compared by map lookup — fine for a handful of

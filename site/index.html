@@ -296,7 +296,13 @@
     .hero-inner { padding: 64px 0 72px; }
     .steps, .grid { grid-template-columns: 1fr; }
     .nav-links { display: none; }
-    .ribbon { opacity: .5; }
+    .ribbon {
+      clip-path: none; transform: none;
+      width: 100%; height: 42%; top: 0; right: 0;
+      opacity: .16;
+      -webkit-mask-image: linear-gradient(#000, transparent);
+      mask-image: linear-gradient(#000, transparent);
+    }
     .code-card { transform: none; }
   }
 </style>
