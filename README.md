@@ -72,3 +72,28 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 
 The Python port reproduces the TypeScript wire format byte for byte — the
 fixtures in `golden/` are the contract, and both suites are held to them in CI.
+
+## Licensing
+
+Tollway is **open core**.
+
+- **The SDK is MIT — free forever, no account required.** Everything a merchant
+  needs to gate a route, return a 402, verify payment, and issue receipts:
+  `@tollway/core`, `@tollway/express`, `@tollway/hono`, `@tollway/coinbase`,
+  `@tollway/gate`, and the Python `tollway` package.
+- **The cloud pieces are BUSL-1.1 (source-available).** `@tollway/ingest`,
+  `tollway-ingest` (Python), and `services/ingest`. You can read them, and run
+  them to send or ingest **your own** telemetry (including self-hosting). You
+  may not offer them, or a derivative, as a hosted or managed service to third
+  parties. Each converts to MIT on its Change Date (2030-08-12).
+
+| Package | License |
+| --- | --- |
+| `@tollway/core`, `/express`, `/hono`, `/coinbase`, `/gate` | MIT |
+| `tollway` (Python) | MIT |
+| `@tollway/ingest`, `tollway-ingest`, `services/ingest` | BUSL-1.1 |
+
+The MIT SDK never depends on the BSL packages — a standalone install pulls no
+BSL code. See each package's `LICENSE`, and `LICENSE` at the root for the MIT
+text. Tollway's own hosted cloud is a separate, commercial product built on
+these foundations.
