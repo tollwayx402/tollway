@@ -11,13 +11,13 @@ pnpm dev            # wrangler dev → http://localhost:8787/v1/report
 
 ```bash
 curl -i http://localhost:8787/v1/report          # → 402 with the challenge
-cd ../express-base && TW_AGENT_KEY=0x… node agent.js http://localhost:8787/v1/report
+cd ../express-base && OCT_AGENT_KEY=0x… node agent.js http://localhost:8787/v1/report
 ```
 
 Deploy:
 
 ```bash
-wrangler secret put TW_ADDRESS
+wrangler secret put OCT_ADDRESS
 pnpm deploy
 ```
 
@@ -31,7 +31,7 @@ Workers runs many isolates, and the SDK's defaults are per-process:
 2. **Receipt keys** — a standalone gate signs with an ephemeral key per
    isolate, so receipts from one isolate will not verify against another's
    public key. Store an Ed25519 JWK as a secret and pass
-   `signer: createSignerFromJwk(JSON.parse(env.TW_SIGNING_JWK))`.
+   `signer: createSignerFromJwk(JSON.parse(env.OCT_SIGNING_JWK))`.
 
 The example is itself under test (`pnpm test`): the app runs against
 `app.request` with a stubbed env, no wrangler needed.

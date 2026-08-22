@@ -10,7 +10,7 @@ export type EventType =
   | "request.failed"
   | "gate.error";
 
-export interface TollwayEvent<D = Record<string, unknown>> {
+export interface OctroiEvent<D = Record<string, unknown>> {
   id: string;
   v: 1;
   type: EventType;
@@ -22,7 +22,7 @@ export interface TollwayEvent<D = Record<string, unknown>> {
   data: D;
 }
 
-export type EventSink = (event: TollwayEvent) => void | Promise<void>;
+export type EventSink = (event: OctroiEvent) => void | Promise<void>;
 
 export interface EventBusOptions {
   sinks?: EventSink[];
@@ -44,7 +44,7 @@ export class EventBus {
   readonly #logger: Logger;
   readonly #clock: () => number;
   readonly #newId: () => string;
-  readonly #queue: TollwayEvent[] = [];
+  readonly #queue: OctroiEvent[] = [];
   #draining = false;
   #pump: Promise<void> = Promise.resolve();
 
@@ -65,8 +65,8 @@ export class EventBus {
     type: EventType,
     route: string,
     data: D,
-  ): TollwayEvent<D> {
-    const event: TollwayEvent<D> = {
+  ): OctroiEvent<D> {
+    const event: OctroiEvent<D> = {
       id: this.#newId(),
       v: 1,
       type,
@@ -75,7 +75,7 @@ export class EventBus {
       merchant: this.#merchant,
       data,
     };
-    this.#queue.push(event as TollwayEvent);
+    this.#queue.push(event as OctroiEvent);
     this.#kick();
     return event;
   }
@@ -104,7 +104,7 @@ export class EventBus {
           try {
             await sink(event);
           } catch (error) {
-            this.#logger.warn("tollway: event sink threw", {
+            this.#logger.warn("octroi: event sink threw", {
               event_id: event.id,
               type: event.type,
               error: error instanceof Error ? error.message : String(error),

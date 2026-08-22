@@ -11,7 +11,7 @@
  * `solana:…`). Both count as settlement support; unknown chains are reported
  * rather than dropped.
  */
-import { FacilitatorUnreachableError, type Network } from "@tollway/core";
+import { FacilitatorUnreachableError, type Network } from "@octroi/core";
 import { networkForCaip2 } from "./networks.js";
 
 export interface SupportedNetworks {

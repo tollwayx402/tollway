@@ -25,7 +25,7 @@ __all__ = [
 X402_VERSION = 1
 
 PAYMENT_HEADER = "x-payment"
-RECEIPT_HEADER = "x-tollway-receipt"
+RECEIPT_HEADER = "x-octroi-receipt"
 
 #: x402 types ``error`` as an optional *closed enum*, not free text. Our own
 #: codes fail its schema outright, so we map onto the enum and keep the precise
@@ -54,7 +54,7 @@ def build_challenge_body(accepts: List[Dict[str, Any]], code: str, message: str)
 
 
 def read_error_detail(body: Any) -> Optional[Dict[str, Any]]:
-    """Read the Tollway envelope from any SDK body, 402 or not."""
+    """Read the Octroi envelope from any SDK body, 402 or not."""
     if not isinstance(body, dict):
         return None
     candidate = body.get("errorDetail", body.get("error"))

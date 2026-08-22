@@ -9,9 +9,9 @@
  * event delivery**. `sink` is synchronous, allocation-cheap, and cannot throw.
  * Every network cost lives on a timer.
  */
-import type { EventSink, Logger, TollwayEvent } from "@tollway/core";
+import type { EventSink, Logger, OctroiEvent } from "@octroi/core";
 
-export const DEFAULT_INGEST_URL = "https://ingest.tollway.sh";
+export const DEFAULT_INGEST_URL = "https://ingest.octroi.ai";
 
 export interface IngestClientOptions {
   apiKey: string;
@@ -71,13 +71,13 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
   const log = options.logger;
 
   if (typeof fetchImpl !== "function") {
-    throw new Error("@tollway/ingest: no fetch implementation available; pass `fetchImpl`");
+    throw new Error("@octroi/ingest: no fetch implementation available; pass `fetchImpl`");
   }
   if (options.apiKey.length === 0) {
-    throw new Error("@tollway/ingest: apiKey is required");
+    throw new Error("@octroi/ingest: apiKey is required");
   }
 
-  const buffer: TollwayEvent[] = [];
+  const buffer: OctroiEvent[] = [];
   const stats: IngestStats = {
     buffered: 0,
     sent: 0,
@@ -124,7 +124,7 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
     if (first) {
       // Log once per episode, not once per dropped event: the whole point of
       // this path is that we are already under pressure.
-      log?.warn("tollway: ingest buffer overflowed, dropping oldest events", {
+      log?.warn("octroi: ingest buffer overflowed, dropping oldest events", {
         dropped: stats.dropped,
         cap: maxBufferedEvents,
       });
@@ -132,9 +132,9 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
   }
 
   /** §7: overflow is reported as a `gate.error` in the stream, not just a log. */
-  function overflowEvent(report: { dropped: number; at: number }): TollwayEvent {
+  function overflowEvent(report: { dropped: number; at: number }): OctroiEvent {
     return {
-      id: `twy_evt_overflow_${report.at.toString(36)}_${report.dropped}`,
+      id: `oct_evt_overflow_${report.at.toString(36)}_${report.dropped}`,
       v: 1,
       type: "gate.error",
       ts: report.at,
@@ -160,7 +160,7 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
     }
   };
 
-  async function postBatch(batch: TollwayEvent[]): Promise<void> {
+  async function postBatch(batch: OctroiEvent[]): Promise<void> {
     const body = JSON.stringify({ events: batch });
     const raw = new TextEncoder().encode(body);
     const headers: Record<string, string> = {
@@ -228,7 +228,7 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
             const permanent = (error as { permanent?: boolean }).permanent === true;
             if (permanent) {
               stats.abandoned += batch.length;
-              log?.error("tollway: ingest rejected a batch permanently, discarding it", {
+              log?.error("octroi: ingest rejected a batch permanently, discarding it", {
                 events: batch.length,
                 error: error instanceof Error ? error.message : String(error),
               });
@@ -243,7 +243,7 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
 
             if (stats.consecutiveFailures >= maxAttempts) {
               stats.abandoned += buffer.length;
-              log?.error("tollway: ingest unreachable, giving up on the buffer", {
+              log?.error("octroi: ingest unreachable, giving up on the buffer", {
                 events: buffer.length,
                 attempts: stats.consecutiveFailures,
                 error: error instanceof Error ? error.message : String(error),
@@ -253,7 +253,7 @@ export function createIngestClient(options: IngestClientOptions): IngestClient {
               return;
             }
 
-            log?.warn("tollway: ingest flush failed, will retry", {
+            log?.warn("octroi: ingest flush failed, will retry", {
               attempt: stats.consecutiveFailures,
               buffered: buffer.length,
               error: error instanceof Error ? error.message : String(error),

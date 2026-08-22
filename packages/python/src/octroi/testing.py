@@ -130,11 +130,11 @@ def fixed_clock(start_ms: float, step_ms: float = 0) -> Callable[[], float]:
 
 
 def counter_ids() -> Callable[[str], str]:
-    """Deterministic ids: ``twy_<prefix>_0001``, ``twy_<prefix>_0002``, …"""
+    """Deterministic ids: ``oct_<prefix>_0001``, ``oct_<prefix>_0002``, …"""
     counters: Dict[str, int] = {}
 
     def next_id(prefix: str) -> str:
         counters[prefix] = counters.get(prefix, 0) + 1
-        return f"twy_{prefix}_{counters[prefix]:04d}"
+        return f"oct_{prefix}_{counters[prefix]:04d}"
 
     return next_id

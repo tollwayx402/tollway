@@ -1,4 +1,4 @@
-import { TollwayConfigError } from "./errors.js";
+import { OctroiConfigError } from "./errors.js";
 import type { FacilitatorAdapter, Network } from "./types.js";
 
 /**
@@ -27,7 +27,7 @@ export function resolveFacilitator(spec: FacilitatorSpec): FacilitatorAdapter {
   const adapter = registry.get(spec);
   if (!adapter) {
     const known = registeredFacilitators();
-    throw new TollwayConfigError(
+    throw new OctroiConfigError(
       `unknown facilitator "${spec}"; import the adapter package first` +
         (known.length > 0 ? ` (registered: ${known.join(", ")})` : ""),
     );

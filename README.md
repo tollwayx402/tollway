@@ -1,7 +1,7 @@
-# Tollway
+# Octroi
 
 Toll gates for HTTP routes: return a 402, verify the payment, serve the 200.
-Works with no Tollway account; the cloud is additive (`specs/sdk.md` §1).
+Works with no Octroi account; the cloud is additive (`specs/sdk.md` §1).
 
 ## Status
 
@@ -18,16 +18,16 @@ Build order is `specs/sdk.md` §12.
 
 **Sweep (post-step-5):** all 15 client-parseable EVM networks with verified
 asset facts, settleability-gated with a `doctor` /supported check · §9 rate
-limits + denylist (TS + Py) · `tollway-ingest` Python cloud client ·
+limits + denylist (TS + Py) · `octroi-ingest` Python cloud client ·
 FastAPI + Workers examples · Dockerfile + self-served `/docs/errors`.
 
-The reference `x402-fetch` client pays a Tollway gate end to end in CI, with no
+The reference `x402-fetch` client pays a Octroi gate end to end in CI, with no
 funds and no network (`packages/coinbase/test/client-walk.test.ts`). The live
 Base Sepolia run is written and wired to a nightly workflow; it needs a
 faucet-funded wallet to have ever run for real.
 
 ```bash
-npx @tollway/gate doctor --pay-to 0xYourAddress --network base-sepolia
+npx @octroi/gate doctor --pay-to 0xYourAddress --network base-sepolia
 ```
 
 ## Layout
@@ -48,7 +48,7 @@ specs/sdk.md        the build contract
 ```
 
 Licensing follows §2: everything a merchant needs is MIT, and no MIT package
-depends on the BSL ones — `@tollway/express` loads `@tollway/ingest` lazily as
+depends on the BSL ones — `@octroi/express` loads `@octroi/ingest` lazily as
 an optional peer, so a standalone install has no BSL code in its tree.
 
 ## Develop
@@ -75,25 +75,25 @@ fixtures in `golden/` are the contract, and both suites are held to them in CI.
 
 ## Licensing
 
-Tollway is **open core**.
+Octroi is **open core**.
 
 - **The SDK is MIT — free forever, no account required.** Everything a merchant
   needs to gate a route, return a 402, verify payment, and issue receipts:
-  `@tollway/core`, `@tollway/express`, `@tollway/hono`, `@tollway/coinbase`,
-  `@tollway/gate`, and the Python `tollway` package.
-- **The cloud pieces are BUSL-1.1 (source-available).** `@tollway/ingest`,
-  `tollway-ingest` (Python), and `services/ingest`. You can read them, and run
+  `@octroi/core`, `@octroi/express`, `@octroi/hono`, `@octroi/coinbase`,
+  `@octroi/gate`, and the Python `octroi` package.
+- **The cloud pieces are BUSL-1.1 (source-available).** `@octroi/ingest`,
+  `octroi-ingest` (Python), and `services/ingest`. You can read them, and run
   them to send or ingest **your own** telemetry (including self-hosting). You
   may not offer them, or a derivative, as a hosted or managed service to third
   parties. Each converts to MIT on its Change Date (2030-08-12).
 
 | Package | License |
 | --- | --- |
-| `@tollway/core`, `/express`, `/hono`, `/coinbase`, `/gate` | MIT |
-| `tollway` (Python) | MIT |
-| `@tollway/ingest`, `tollway-ingest`, `services/ingest` | BUSL-1.1 |
+| `@octroi/core`, `/express`, `/hono`, `/coinbase`, `/gate` | MIT |
+| `octroi` (Python) | MIT |
+| `@octroi/ingest`, `octroi-ingest`, `services/ingest` | BUSL-1.1 |
 
 The MIT SDK never depends on the BSL packages — a standalone install pulls no
 BSL code. See each package's `LICENSE`, and `LICENSE` at the root for the MIT
-text. Tollway's own hosted cloud is a separate, commercial product built on
+text. Octroi's own hosted cloud is a separate, commercial product built on
 these foundations.

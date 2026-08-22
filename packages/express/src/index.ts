@@ -1,20 +1,20 @@
 /**
- * `@tollway/express` — Express binding for the protocol core.
+ * `@octroi/express` — Express binding for the protocol core.
  *
  * The whole adapter contract is three things (see core's README): map the
  * request onto `GateRequest`, render a halt, and report the outcome once the
  * handler has produced a status.
  */
-import { createGate, type EventSink, type Gate, type GateOptions, type GateRequest } from "@tollway/core";
+import { createGate, type EventSink, type Gate, type GateOptions, type GateRequest } from "@octroi/core";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
-export interface TollwayExpressOptions extends Omit<GateOptions, "route"> {
+export interface OctroiExpressOptions extends Omit<GateOptions, "route"> {
   /** Route label for events and receipts. Defaults to the mount path. */
   route?: string | ((req: Request) => string);
   /**
-   * Cloud API key (§3.1). When set, events are also sent to Tollway Cloud.
+   * Cloud API key (§3.1). When set, events are also sent to Octroi Cloud.
    *
-   * `@tollway/ingest` is an **optional peer dependency**, loaded lazily: it is
+   * `@octroi/ingest` is an **optional peer dependency**, loaded lazily: it is
    * BSL, this package is MIT, and §1.1 promises the SDK works with no cloud —
    * so a hard dependency would drag BSL code into every standalone install.
    * If it is not installed, this logs an error and stays local rather than
@@ -25,7 +25,7 @@ export interface TollwayExpressOptions extends Omit<GateOptions, "route"> {
   ingestUrl?: string;
 }
 
-export interface TollwayMiddleware extends RequestHandler {
+export interface OctroiMiddleware extends RequestHandler {
   /** The underlying gate, for event sinks, `publicKey()`, or `doctor`. */
   gate: Gate;
 }
@@ -33,7 +33,7 @@ export interface TollwayMiddleware extends RequestHandler {
 /** Status reported when a client hangs up before the response completed. */
 const CLIENT_CLOSED = 499;
 
-export function tollway(options: TollwayExpressOptions): TollwayMiddleware {
+export function octroi(options: OctroiExpressOptions): OctroiMiddleware {
   const { route, apiKey, ingestUrl, ...gateOptions } = options;
   const gate = createGate(gateOptions);
 
@@ -89,7 +89,7 @@ export function tollway(options: TollwayExpressOptions): TollwayMiddleware {
 /**
  * Attach the cloud sink without ever blocking construction.
  *
- * The import is async but `tollway()` is not, so a buffering sink goes on the
+ * The import is async but `octroi()` is not, so a buffering sink goes on the
  * bus **synchronously** and replays into the real client once it loads. Without
  * that, every event emitted during startup — exactly when a misconfiguration
  * shows up — would be lost to the cloud.
@@ -98,7 +98,7 @@ function attachCloudSink(
   gate: Gate,
   apiKey: string,
   url: string | undefined,
-  logger: TollwayExpressOptions["logger"],
+  logger: OctroiExpressOptions["logger"],
 ): void {
   const pending: Parameters<EventSink>[0][] = [];
   let live: EventSink | undefined;
@@ -110,7 +110,7 @@ function attachCloudSink(
 
   void (async () => {
     try {
-      const { createIngestClient } = await import("@tollway/ingest");
+      const { createIngestClient } = await import("@octroi/ingest");
       const client = createIngestClient({
         apiKey,
         ...(url === undefined ? {} : { url }),
@@ -120,7 +120,7 @@ function attachCloudSink(
       for (const event of pending.splice(0)) client.sink(event);
     } catch (error) {
       (logger ?? console).error?.(
-        "tollway: `apiKey` was set but @tollway/ingest could not be loaded — events stay local. " +
+        "octroi: `apiKey` was set but @octroi/ingest could not be loaded — events stay local. " +
           `Install it to enable cloud events. (${error instanceof Error ? error.message : String(error)})`,
       );
       // Drop the backlog rather than growing it forever on a machine that will
@@ -131,7 +131,7 @@ function attachCloudSink(
   })();
 }
 
-function toGateRequest(req: Request, route: TollwayExpressOptions["route"]): GateRequest {
+function toGateRequest(req: Request, route: OctroiExpressOptions["route"]): GateRequest {
   const gateRequest: GateRequest = {
     method: req.method,
     route: resolveRoute(req, route),
@@ -160,7 +160,7 @@ function absoluteUrl(req: Request): string | undefined {
 }
 
 /** Stable label for events and receipts — the path, never the query. */
-function resolveRoute(req: Request, override: TollwayExpressOptions["route"]): string {
+function resolveRoute(req: Request, override: OctroiExpressOptions["route"]): string {
   if (typeof override === "function") return override(req);
   if (override !== undefined) return override;
 

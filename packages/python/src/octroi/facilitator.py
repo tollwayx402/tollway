@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Sequence, Union
 
-from .errors import TollwayConfigError
+from .errors import OctroiConfigError
 
 __all__ = [
     "FacilitatorAdapter",
@@ -91,7 +91,7 @@ def resolve_facilitator(spec: Union[str, FacilitatorAdapter]) -> FacilitatorAdap
     if adapter is None:
         known = registered_facilitators()
         suffix = f" (registered: {', '.join(known)})" if known else ""
-        raise TollwayConfigError(
+        raise OctroiConfigError(
             f'unknown facilitator "{spec}"; import the adapter module first{suffix}'
         )
     return adapter

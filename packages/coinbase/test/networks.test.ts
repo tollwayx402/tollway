@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import { getDefaultAsset, getNetworkId } from "x402/shared";
 import { PaymentRequirementsSchema } from "x402/types";
-import type { ChallengeRequest } from "@tollway/core";
+import type { ChallengeRequest } from "@octroi/core";
 import { coinbaseFacilitator } from "../src/index.js";
 import { DEFAULT_NETWORKS, KNOWN_NETWORKS, NETWORKS, networkForCaip2 } from "../src/networks.js";
 import { fetchSupportedNetworks } from "../src/supported.js";
@@ -71,7 +71,7 @@ describe("the network table", () => {
 
 describe("multi-network challenges", () => {
   it("advertises several networks in configured order, all client-parseable", async () => {
-    const { createGate } = await import("@tollway/core");
+    const { createGate } = await import("@octroi/core");
     const gate = createGate({
       price: "$0.004",
       asset: "usdc",

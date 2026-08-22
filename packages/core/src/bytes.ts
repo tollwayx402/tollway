@@ -7,7 +7,7 @@ export function getCrypto(): Crypto {
   const c = (globalThis as { crypto?: Crypto }).crypto;
   if (!c?.subtle) {
     throw new Error(
-      "WebCrypto (globalThis.crypto.subtle) is unavailable; Tollway core requires Node 20+, Deno, Bun or a Workers runtime",
+      "WebCrypto (globalThis.crypto.subtle) is unavailable; Octroi core requires Node 20+, Deno, Bun or a Workers runtime",
     );
   }
   return c;

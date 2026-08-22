@@ -1,12 +1,12 @@
 /**
  * The live Base Sepolia end-to-end run — **manual or nightly, never in PR CI**.
  *
- *   pnpm --filter @tollway/coinbase e2e:testnet
+ *   pnpm --filter @octroi/coinbase e2e:testnet
  *
- *   TW_AGENT_KEY   private key of a wallet holding Base Sepolia USDC
- *   TW_PAY_TO      settlement address to pay
- *   TW_FACILITATOR facilitator URL (default: the public one)
- *   TW_CDP_JWT     bearer token, if pointing at CDP
+ *   OCT_AGENT_KEY   private key of a wallet holding Base Sepolia USDC
+ *   OCT_PAY_TO      settlement address to pay
+ *   OCT_FACILITATOR facilitator URL (default: the public one)
+ *   OCT_CDP_JWT     bearer token, if pointing at CDP
  *
  * A real server, the reference client, a real facilitator, real (testnet)
  * money. This is what proves the fixtures still describe reality — and the
@@ -21,8 +21,8 @@ import {
   runFacilitatorConformance,
   verifyReceipt,
   RECEIPT_HEADER,
-  type TollwayEvent,
-} from "@tollway/core";
+  type OctroiEvent,
+} from "@octroi/core";
 import { coinbaseFacilitator, DEFAULT_FACILITATOR_URL } from "../src/index.ts";
 import { measureClockSkew } from "../src/skew.ts";
 import { agentFetch, agentWallet } from "../dev/agent.ts";
@@ -36,9 +36,9 @@ function required(name: string): string {
   return value;
 }
 
-const facilitatorUrl = process.env["TW_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
-const agentKey = required("TW_AGENT_KEY") as `0x${string}`;
-const payTo = required("TW_PAY_TO");
+const facilitatorUrl = process.env["OCT_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
+const agentKey = required("OCT_AGENT_KEY") as `0x${string}`;
+const payTo = required("OCT_PAY_TO");
 
 const failures: string[] = [];
 function check(name: string, ok: boolean, detail?: string) {
@@ -51,9 +51,9 @@ async function main() {
   console.log(`live run against ${facilitatorUrl}`);
   console.log(`paying from ${account.address} to ${payTo}\n`);
 
-  const authHeaders = process.env["TW_CDP_JWT"]
+  const authHeaders = process.env["OCT_CDP_JWT"]
     ? () => {
-        const header = { authorization: `Bearer ${process.env["TW_CDP_JWT"]}` };
+        const header = { authorization: `Bearer ${process.env["OCT_CDP_JWT"]}` };
         return { verify: header, settle: header };
       }
     : undefined;
@@ -89,7 +89,7 @@ async function main() {
 
   // 3. A real payment, end to end.
   console.log("\nend-to-end payment:");
-  const events: TollwayEvent[] = [];
+  const events: OctroiEvent[] = [];
   const gate = createGate({
     price: "$0.004",
     asset: "usdc",

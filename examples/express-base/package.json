@@ -1,5 +1,5 @@
 {
-  "name": "@tollway/example-express-base",
+  "name": "@octroi/example-express-base",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "agent": "node agent.js"
   },
   "dependencies": {
-    "@tollway/gate": "workspace:*",
+    "@octroi/gate": "workspace:*",
     "express": "^5.1.0"
   },
   "devDependencies": {

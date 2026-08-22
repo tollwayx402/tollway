@@ -11,7 +11,7 @@ you updated as we work a fix.
 
 ## Scope worth noting
 
-- Tollway is **zero-custody** — the SDK never holds keys or funds; settlement
+- Octroi is **zero-custody** — the SDK never holds keys or funds; settlement
   is delegated to facilitators. Reports about key/fund handling in the SDK
   itself are especially welcome.
 - Payment verification, replay protection, receipt signing, remote-config

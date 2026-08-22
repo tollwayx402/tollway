@@ -19,7 +19,7 @@ Python port:
 
 - clock: `1765432100000` ms, frozen
 - nonce: `9f86d081884c7d659a2feaa0c55ad015`
-- ids: `twy_rcpt_000001`, `twy_evt_000001…`
+- ids: `oct_rcpt_000001`, `oct_evt_000001…`
 - signing key: the throwaway Ed25519 JWK in
   `packages/core/test/fixtures/keys.ts` — **not a secret, never sign anything
   real with it**

@@ -1,18 +1,18 @@
 import { Hono } from "hono";
 import { describe, expect, it } from "vitest";
-import { RECEIPT_HEADER, verifyReceipt, type TollwayEvent } from "@tollway/core";
-import { createMockFacilitator, encodePaymentHeader, mockPayment } from "@tollway/core/testing";
-import { tollway, type TollwayHonoOptions } from "../src/index.js";
+import { RECEIPT_HEADER, verifyReceipt, type OctroiEvent } from "@octroi/core";
+import { createMockFacilitator, encodePaymentHeader, mockPayment } from "@octroi/core/testing";
+import { octroi, type OctroiHonoOptions } from "../src/index.js";
 
 function harness(
-  options: Partial<TollwayHonoOptions> = {},
-  mount: (app: Hono, middleware: ReturnType<typeof tollway>) => void = (app, middleware) => {
+  options: Partial<OctroiHonoOptions> = {},
+  mount: (app: Hono, middleware: ReturnType<typeof octroi>) => void = (app, middleware) => {
     app.use("/v1/report", middleware);
     app.get("/v1/report", (c) => c.json({ report: "paid content" }));
   },
 ) {
-  const events: TollwayEvent[] = [];
-  const middleware = tollway({
+  const events: OctroiEvent[] = [];
+  const middleware = octroi({
     price: "$0.004",
     asset: "usdc",
     network: "base-sepolia",
@@ -74,7 +74,7 @@ describe("paid requests", () => {
     await expect(response.json()).resolves.toEqual({ report: "paid content" });
 
     const receiptId = response.headers.get(RECEIPT_HEADER);
-    expect(receiptId).toMatch(/^twy_rcpt_/);
+    expect(receiptId).toMatch(/^oct_rcpt_/);
 
     expect(h.events.map((e) => e.type)).toEqual(["toll.settled", "request.served"]);
     expect(h.events[1]?.data).toMatchObject({ receipt_id: receiptId, status: 200 });
@@ -128,7 +128,7 @@ describe("outcome reporting", () => {
 
     expect(response.status).toBe(500);
     expect(h.events.map((e) => e.type)).toEqual(["toll.settled", "request.failed"]);
-    expect(h.events[1]?.data["receipt_id"]).toMatch(/^twy_rcpt_/);
+    expect(h.events[1]?.data["receipt_id"]).toMatch(/^oct_rcpt_/);
   });
 
   it("reports a thrown handler as failed and still lets Hono render the error", async () => {

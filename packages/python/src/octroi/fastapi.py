@@ -2,7 +2,7 @@
 
 ``tw.gate(...)`` returns a dependency, so a route is gated by declaring it:
 
-    tw = Tollway(pay_to=..., network="base", facilitator=coinbase)
+    tw = Octroi(pay_to=..., network="base", facilitator=coinbase)
 
     @app.get("/v1/report", dependencies=[tw.gate(price="$0.004")])
     async def report(): ...
@@ -23,14 +23,14 @@ from starlette.background import BackgroundTask
 from .facilitator import FacilitatorAdapter
 from .gate import Gate, GateRequest, GateResult
 
-__all__ = ["Tollway", "TollwayHalt"]
+__all__ = ["Octroi", "OctroiHalt"]
 
 
-class TollwayHalt(Exception):
+class OctroiHalt(Exception):
     """Raised to stop a request with a rendered 402/500/503 body.
 
     FastAPI turns this into a response through the handler installed by
-    :meth:`Tollway.install`, which the constructor does for you.
+    :meth:`Octroi.install`, which the constructor does for you.
     """
 
     def __init__(self, result: GateResult) -> None:
@@ -38,7 +38,7 @@ class TollwayHalt(Exception):
         self.result = result
 
 
-class Tollway:
+class Octroi:
     """Per-app configuration; ``gate()`` adds the per-route parts (§3.2)."""
 
     def __init__(
@@ -59,8 +59,8 @@ class Tollway:
             # The cloud client is a separate, differently licensed package.
             import logging
 
-            logging.getLogger("tollway").warning(
-                "tollway: `api_key` needs the cloud client; pass its sink via `sinks=[...]` "
+            logging.getLogger("octroi").warning(
+                "octroi: `api_key` needs the cloud client; pass its sink via `sinks=[...]` "
                 "until the Python ingest client ships"
             )
 
@@ -79,7 +79,7 @@ class Tollway:
             label = route or _route_label(request)
             # Stashed before handle(), so the halt renderer can flush events in
             # the background — never inline on the payer's request path (§7).
-            request.state.tollway_gate = gate
+            request.state.octroi_gate = gate
             result = await gate.handle(
                 GateRequest(
                     method=request.method,
@@ -93,11 +93,11 @@ class Tollway:
             )
 
             if not result.is_pass:
-                raise TollwayHalt(result)
+                raise OctroiHalt(result)
 
             # Stash on the request so the response hook can finish the job.
-            request.state.tollway_result = result
-            request.state.tollway_started = time.time() * 1000
+            request.state.octroi_result = result
+            request.state.octroi_started = time.time() * 1000
 
         return Depends(dependency)
 
@@ -110,14 +110,14 @@ class Tollway:
         refund candidates — would silently never happen.
         """
 
-        @app.exception_handler(TollwayHalt)
-        async def _render_halt(request: Request, exc: TollwayHalt) -> Response:  # noqa: ANN202
+        @app.exception_handler(OctroiHalt)
+        async def _render_halt(request: Request, exc: OctroiHalt) -> Response:  # noqa: ANN202
             response = JSONResponse(
                 status_code=exc.result.status,
                 content=exc.result.body,
                 headers=exc.result.headers,
             )
-            gate: Optional[Gate] = getattr(request.state, "tollway_gate", None)
+            gate: Optional[Gate] = getattr(request.state, "octroi_gate", None)
             if gate is not None:
                 # Event delivery happens after the response is sent (§7).
                 response.background = BackgroundTask(gate.flush_events)
@@ -128,24 +128,24 @@ class Tollway:
             try:
                 response = await call_next(request)
             except Exception:
-                result = getattr(request.state, "tollway_result", None)
+                result = getattr(request.state, "octroi_result", None)
                 if result is not None:
                     result.report(status=500, error="handler raised")
                     await _flush(request)
                 raise
 
-            result: Optional[GateResult] = getattr(request.state, "tollway_result", None)
+            result: Optional[GateResult] = getattr(request.state, "octroi_result", None)
             if result is None:
                 return response
 
             for name, value in result.headers.items():
                 response.headers[name] = value
 
-            started = getattr(request.state, "tollway_started", None)
+            started = getattr(request.state, "octroi_started", None)
             latency = (time.time() * 1000 - started) if started else None
             result.report(status=response.status_code, latency_ms=latency)
 
-            gate: Optional[Gate] = getattr(request.state, "tollway_gate", None)
+            gate: Optional[Gate] = getattr(request.state, "octroi_gate", None)
             if gate is not None:
                 # Flush after the response is sent, so event delivery never sits
                 # on the payer's request path.
@@ -154,7 +154,7 @@ class Tollway:
 
 
 async def _flush(request: Request) -> None:
-    gate: Optional[Gate] = getattr(request.state, "tollway_gate", None)
+    gate: Optional[Gate] = getattr(request.state, "octroi_gate", None)
     if gate is not None:
         await gate.flush_events()
 
@@ -181,7 +181,7 @@ def gate_dependency(gate: Gate, route: Optional[str] = None) -> Any:
     """Escape hatch: gate a route with a Gate you built yourself."""
 
     async def dependency(request: Request) -> None:
-        request.state.tollway_gate = gate
+        request.state.octroi_gate = gate
         result = await gate.handle(
             GateRequest(
                 method=request.method,
@@ -193,8 +193,8 @@ def gate_dependency(gate: Gate, route: Optional[str] = None) -> Any:
             )
         )
         if not result.is_pass:
-            raise TollwayHalt(result)
-        request.state.tollway_result = result
-        request.state.tollway_started = time.time() * 1000
+            raise OctroiHalt(result)
+        request.state.octroi_result = result
+        request.state.octroi_started = time.time() * 1000
 
     return Depends(dependency)

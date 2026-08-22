@@ -1,4 +1,4 @@
-import { TollwayConfigError } from "./errors.js";
+import { OctroiConfigError } from "./errors.js";
 import type { Asset, GateRequest, Price, PriceConfig } from "./types.js";
 
 /** Decimals for assets the SDK ships knowledge of. */
@@ -11,7 +11,7 @@ export function assetDecimals(asset: Asset, override?: number): number {
   if (override !== undefined) return override;
   const known = ASSET_DECIMALS[asset.toLowerCase()];
   if (known === undefined) {
-    throw new TollwayConfigError(
+    throw new OctroiConfigError(
       `unknown asset "${asset}"; pass \`decimals\` to price it explicitly`,
     );
   }
@@ -34,18 +34,18 @@ export function parsePrice(price: Price, opts: { asset: Asset; decimals?: number
   const decimals = assetDecimals(opts.asset, opts.decimals);
 
   if (typeof price === "bigint") {
-    if (price <= 0n) throw new TollwayConfigError(`price must be greater than zero, got ${price}`);
+    if (price <= 0n) throw new OctroiConfigError(`price must be greater than zero, got ${price}`);
     return price;
   }
 
   if (typeof price !== "string") {
-    throw new TollwayConfigError(`price must be a string or bigint, got ${typeof price}`);
+    throw new OctroiConfigError(`price must be a string or bigint, got ${typeof price}`);
   }
 
   const trimmed = price.trim();
   const match = USD_PATTERN.exec(trimmed);
   if (!match) {
-    throw new TollwayConfigError(
+    throw new OctroiConfigError(
       `could not parse price "${price}"; expected a USD amount like "$0.004" or atomic units as a bigint`,
     );
   }
@@ -53,13 +53,13 @@ export function parsePrice(price: Price, opts: { asset: Asset; decimals?: number
   const whole = (match[1] ?? "0").replace(/,/g, "");
   const fraction = match[2] ?? "";
   if (fraction.length > decimals) {
-    throw new TollwayConfigError(
+    throw new OctroiConfigError(
       `price "${price}" has ${fraction.length} decimal places but ${opts.asset} carries ${decimals}`,
     );
   }
 
   const atomic = BigInt(whole + fraction.padEnd(decimals, "0"));
-  if (atomic <= 0n) throw new TollwayConfigError(`price must be greater than zero, got "${price}"`);
+  if (atomic <= 0n) throw new OctroiConfigError(`price must be greater than zero, got "${price}"`);
   return atomic;
 }
 

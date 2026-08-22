@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PaymentRequirementsSchema, SettleResponseSchema, VerifyResponseSchema } from "x402/types";
-import { createGate, silentLogger } from "@tollway/core";
-import { encodePaymentHeader } from "@tollway/core/testing";
-import type { ChallengeRequest, PaymentPayload, VerifyContext } from "@tollway/core";
+import { createGate, silentLogger } from "@octroi/core";
+import { encodePaymentHeader } from "@octroi/core/testing";
+import type { ChallengeRequest, PaymentPayload, VerifyContext } from "@octroi/core";
 import { coinbaseFacilitator } from "../src/index.js";
 import { NETWORKS } from "../src/networks.js";
 import { exchange, failingFetch, hangingFetch, replayFetch } from "./replay.js";
@@ -160,7 +160,7 @@ describe("verify", () => {
     if (!result.ok) expect(result.message).toMatch(/unexpected_error/);
   });
 
-  it("maps facilitator reasons onto Tollway reject codes", async () => {
+  it("maps facilitator reasons onto Octroi reject codes", async () => {
     const cases: Array<[string, string]> = [
       ["verify.expired", "expired"],
       ["verify.insufficientFunds", "invalid_payment"],

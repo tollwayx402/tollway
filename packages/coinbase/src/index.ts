@@ -1,5 +1,5 @@
 /**
- * `@tollway/coinbase` — the Coinbase/CDP x402 facilitator adapter.
+ * `@octroi/coinbase` — the Coinbase/CDP x402 facilitator adapter.
  *
  * Speaks the facilitator HTTP contract from `x402@1.2.0`: `POST /verify` and
  * `POST /settle`, both taking `{ x402Version, paymentPayload, paymentRequirements }`.
@@ -14,7 +14,7 @@ import {
   type PaymentPayload,
   type VerifyContext,
   type VerifyResult,
-} from "@tollway/core";
+} from "@octroi/core";
 import { DEFAULT_FACILITATOR_URL } from "./constants.js";
 import { DEFAULT_NETWORKS, assetConfig } from "./networks.js";
 import { isFacilitatorFault, rejectCodeFor } from "./reasons.js";

@@ -6,14 +6,14 @@ from typing import Any, Dict, Optional
 
 __all__ = [
     "DOC_BASE",
-    "TollwayConfigError",
+    "OctroiConfigError",
     "FacilitatorUnreachableError",
     "PaymentDecodeError",
     "error_body",
     "reject_message",
 ]
 
-DOC_BASE = "https://tollway.sh/docs/errors#"
+DOC_BASE = "https://octroi.ai/docs/errors#"
 
 _REJECT_MESSAGES = {
     "invalid_payment": "Payment payload was missing, malformed, or failed verification.",
@@ -33,7 +33,7 @@ def reject_message(code: str) -> str:
     return _REJECT_MESSAGES.get(code, "Payment was rejected.")
 
 
-class TollwayConfigError(ValueError):
+class OctroiConfigError(ValueError):
     """Merchant misconfiguration — always raised at construction time."""
 
     code = "invalid_config"

@@ -1,8 +1,8 @@
 {
-  "name": "@tollway/service-ingest",
+  "name": "@octroi/service-ingest",
   "private": true,
   "version": "0.1.0",
-  "description": "Minimal Tollway cloud ingest + dashboard v1 (BSL).",
+  "description": "Minimal Octroi cloud ingest + dashboard v1 (BSL).",
   "license": "BUSL-1.1",
   "type": "module",
   "main": "./dist/main.js",
@@ -13,15 +13,15 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@tollway/core": "workspace:*",
+    "@octroi/core": "workspace:*",
     "express": "^5.1.0"
   },
   "devDependencies": {
-    "@tollway/ingest": "workspace:*",
+    "@octroi/ingest": "workspace:*",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "@tollway/express": "workspace:*"
+    "@octroi/express": "workspace:*"
   }
 }

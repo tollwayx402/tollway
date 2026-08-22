@@ -11,7 +11,7 @@ import type {
   ErrorBody,
   GateOptions,
   GateRequest,
-  TollwayEvent,
+  OctroiEvent,
 } from "../src/index.js";
 import {
   counterIds,
@@ -39,7 +39,7 @@ function paid(payload = mockPayment()): GateRequest {
 }
 
 let facilitator: MockFacilitator;
-let events: TollwayEvent[];
+let events: OctroiEvent[];
 
 function gate(overrides: Partial<GateOptions> = {}) {
   const ids = counterIds();
@@ -82,7 +82,7 @@ describe("challenge", () => {
     expect(body.errorDetail).toEqual({
       code: "payment_required",
       message: "This route costs 0.004000 USDC.",
-      doc: "https://tollway.sh/docs/errors#payment_required",
+      doc: "https://octroi.ai/docs/errors#payment_required",
     });
     expect(readErrorDetail(body)?.code).toBe("payment_required");
     expect(body.accepts).toHaveLength(1);
@@ -175,7 +175,7 @@ describe("settlement", () => {
       ts: Math.floor(NOW / 1_000),
       merchant: null,
     });
-    expect(result.receipt?.id).toMatch(/^twy_rcpt_/);
+    expect(result.receipt?.id).toMatch(/^oct_rcpt_/);
     expect(result.headers[RECEIPT_HEADER]).toBe(result.receipt?.id);
     await expect(verifyReceipt(result.receipt!, await g.publicKey())).resolves.toBe(true);
 
@@ -275,7 +275,7 @@ describe("rejections", () => {
     expect(result.status).toBe(402);
     expect(result.code).toBe("invalid_payment");
     expect(body.error).toBe("invalid_payment");
-    expect(body.errorDetail.doc).toBe("https://tollway.sh/docs/errors#invalid_payment");
+    expect(body.errorDetail.doc).toBe("https://octroi.ai/docs/errors#invalid_payment");
     // Re-advertised so the agent can retry immediately.
     expect(body.accepts).toHaveLength(1);
     expect(events.map((e) => e.type)).toEqual(["toll.rejected"]);

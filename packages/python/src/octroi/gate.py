@@ -30,7 +30,7 @@ from .challenge import (
 from .errors import (
     FacilitatorUnreachableError,
     PaymentDecodeError,
-    TollwayConfigError,
+    OctroiConfigError,
     error_body,
     reject_message,
 )
@@ -58,7 +58,7 @@ JSON_HEADERS = {
     "cache-control": "no-store",
 }
 
-_log = logging.getLogger("tollway")
+_log = logging.getLogger("octroi")
 
 
 class GateRequest:
@@ -153,14 +153,14 @@ class Gate:
         self._log = logger or _log
         self._clock = clock or (lambda: time.time() * 1000)
         self._new_nonce = new_nonce or (lambda: os.urandom(16).hex())
-        self._new_id = new_id or (lambda prefix: f"twy_{prefix}_{os.urandom(12).hex()}")
+        self._new_id = new_id or (lambda prefix: f"oct_{prefix}_{os.urandom(12).hex()}")
 
         self.asset = asset
         self._decimals = asset_decimals(asset, decimals)
 
         self.networks: List[str] = [network] if isinstance(network, str) else list(network)
         if not self.networks:
-            raise TollwayConfigError("at least one network is required")
+            raise OctroiConfigError("at least one network is required")
 
         specs = (
             [facilitator]
@@ -168,26 +168,26 @@ class Gate:
             else list(facilitator)
         )
         if not specs:
-            raise TollwayConfigError("a facilitator is required")
+            raise OctroiConfigError("a facilitator is required")
         self._adapters = [resolve_facilitator(spec) for spec in specs]
 
         for net in self.networks:
             if adapter_for_network(self._adapters, net) is None:
                 have = ", ".join(f"{a.id}[{','.join(a.networks)}]" for a in self._adapters)
-                raise TollwayConfigError(
+                raise OctroiConfigError(
                     f'no configured facilitator supports network "{net}" (have: {have})'
                 )
 
         if not isinstance(pay_to, str) or not pay_to.strip():
-            raise TollwayConfigError("`pay_to` is required — the SDK never holds funds (§1.4)")
+            raise OctroiConfigError("`pay_to` is required — the SDK never holds funds (§1.4)")
         self._pay_to = pay_to
 
         if resource_base is not None and not _is_absolute_url(resource_base):
-            raise TollwayConfigError(f'resource_base must be an absolute URL, got "{resource_base}"')
+            raise OctroiConfigError(f'resource_base must be an absolute URL, got "{resource_base}"')
         self._resource_base = resource_base
 
         if mode not in ("fail_closed", "fail_open"):
-            raise TollwayConfigError(f'mode must be "fail_closed" or "fail_open", got "{mode}"')
+            raise OctroiConfigError(f'mode must be "fail_closed" or "fail_open", got "{mode}"')
         self.mode = mode
 
         # Catch a mistyped static price at boot, not on the first request.
@@ -206,7 +206,7 @@ class Gate:
         # A payment can be presented any time inside the challenge window, so
         # forgetting it sooner is an open replay hole.
         if replay_ttl_ms < expiry_seconds * 1000:
-            raise TollwayConfigError(
+            raise OctroiConfigError(
                 f"replay_ttl_ms ({replay_ttl_ms}) must be at least the challenge window "
                 f"(expiry_seconds {expiry_seconds} = {expiry_seconds * 1000}ms), or a payment "
                 "could be replayed after the store forgets it but before it expires"
@@ -223,7 +223,7 @@ class Gate:
         for key in ("challenges_per_minute_per_ip", "attempts_per_minute_per_payer"):
             value = self._rate_limit.get(key)
             if value is not None and (not isinstance(value, (int, float)) or value <= 0):
-                raise TollwayConfigError(f"rate_limit.{key} must be a positive number, got {value!r}")
+                raise OctroiConfigError(f"rate_limit.{key} must be a positive number, got {value!r}")
 
         all_sinks: List[EventSink] = []
         if on_event is not None:
@@ -252,7 +252,7 @@ class Gate:
             self.events.emit(
                 "gate.error", route, {"code": "invalid_config", "message": message, "mode": "fail_closed"}
             )
-            self._log.error("tollway: could not resolve price for %s: %s", route, message)
+            self._log.error("octroi: could not resolve price for %s: %s", route, message)
             return GateResult(
                 "error",
                 status=500,
@@ -263,12 +263,12 @@ class Gate:
 
         try:
             resource = self._resolve_resource(req, route)
-        except TollwayConfigError as error:
+        except OctroiConfigError as error:
             message = str(error)
             self.events.emit(
                 "gate.error", route, {"code": "invalid_resource", "message": message, "mode": "fail_closed"}
             )
-            self._log.error("tollway: could not build an absolute resource URL: %s", message)
+            self._log.error("octroi: could not build an absolute resource URL: %s", message)
             return GateResult(
                 "error",
                 status=500,
@@ -380,7 +380,7 @@ class Gate:
                 requirements[network] = requirement
             except Exception as error:  # noqa: BLE001 — one network must not sink the others
                 self._log.warning(
-                    "tollway: facilitator %s could not build a challenge for %s: %s",
+                    "octroi: facilitator %s could not build a challenge for %s: %s",
                     adapter.id,
                     network,
                     error,
@@ -553,7 +553,7 @@ class Gate:
                 "mode": self.mode,
             },
         )
-        self._log.error("tollway: facilitator %s unreachable (%s): %s", adapter.id, self.mode, message)
+        self._log.error("octroi: facilitator %s unreachable (%s): %s", adapter.id, self.mode, message)
 
         if self.mode == "fail_open":
             # Explicit merchant choice (§1.3): serve unpaid, with no receipt to
@@ -623,7 +623,7 @@ class Gate:
             return candidate
         if self._resource_base is not None:
             return urljoin(self._resource_base, candidate)
-        raise TollwayConfigError(
+        raise OctroiConfigError(
             "x402 requires an absolute URL for `resource`, but this request only supplied "
             f'"{candidate}". Pass `url` from the adapter, or set `resource_base` on the gate.'
         )

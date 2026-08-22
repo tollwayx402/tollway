@@ -1,5 +1,5 @@
 /**
- * Test doubles. Published as `@tollway/core/testing` so adapter packages can
+ * Test doubles. Published as `@octroi/core/testing` so adapter packages can
  * build against a facilitator without a network, and so the §11 contract-test
  * suite has a reference implementation to check itself against.
  */
@@ -131,13 +131,13 @@ export function fixedClock(startMs: number, stepMs = 0): () => number {
   };
 }
 
-/** Deterministic id generator: `twy_<prefix>_0001`, `twy_<prefix>_0002`, … */
+/** Deterministic id generator: `oct_<prefix>_0001`, `oct_<prefix>_0002`, … */
 export function counterIds(): (prefix: string) => string {
   const counters = new Map<string, number>();
   return (prefix) => {
     const next = (counters.get(prefix) ?? 0) + 1;
     counters.set(prefix, next);
-    return `twy_${prefix}_${next.toString().padStart(4, "0")}`;
+    return `oct_${prefix}_${next.toString().padStart(4, "0")}`;
   };
 }
 

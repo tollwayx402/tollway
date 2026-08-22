@@ -12,10 +12,10 @@
  * 3. **Stale config is rejected.** Without a freshness bound, anyone who can
  *    replay an old signed response can revert a price rise indefinitely.
  */
-import { canonicalJson, verifyDocument, type Logger } from "@tollway/core";
-import type { Mode, Price } from "@tollway/core";
+import { canonicalJson, verifyDocument, type Logger } from "@octroi/core";
+import type { Mode, Price } from "@octroi/core";
 
-export const DEFAULT_CONFIG_URL = "https://ingest.tollway.sh";
+export const DEFAULT_CONFIG_URL = "https://ingest.octroi.ai";
 
 /** Per-route overrides the dashboard can push. */
 export interface RemoteRouteConfig {
@@ -36,7 +36,7 @@ export interface SignedConfig {
 export interface RemoteConfigOptions {
   apiKey: string;
   /**
-   * Ed25519 public key of the merchant's Tollway account, hex or raw bytes.
+   * Ed25519 public key of the merchant's Octroi account, hex or raw bytes.
    * **Pinned by the merchant.** Required — there is no unverified mode.
    */
   publicKey: string | Uint8Array;
@@ -77,7 +77,7 @@ export function createRemoteConfigClient(options: RemoteConfigOptions): RemoteCo
 
   if (publicKey.length !== 32) {
     throw new Error(
-      `@tollway/ingest: publicKey must be a 32-byte Ed25519 key, got ${publicKey.length} bytes`,
+      `@octroi/ingest: publicKey must be a 32-byte Ed25519 key, got ${publicKey.length} bytes`,
     );
   }
 
@@ -95,7 +95,7 @@ export function createRemoteConfigClient(options: RemoteConfigOptions): RemoteCo
     try {
       response = await fetchImpl(`${url}/v1/config`, { headers, signal: controller.signal });
     } catch (error) {
-      log?.warn("tollway: could not fetch remote config, keeping the current one", {
+      log?.warn("octroi: could not fetch remote config, keeping the current one", {
         error: error instanceof Error ? error.message : String(error),
       });
       return false;
@@ -105,7 +105,7 @@ export function createRemoteConfigClient(options: RemoteConfigOptions): RemoteCo
 
     if (response.status === 304) return false;
     if (!response.ok) {
-      log?.warn("tollway: remote config responded with an error, keeping the current one", {
+      log?.warn("octroi: remote config responded with an error, keeping the current one", {
         status: response.status,
       });
       return false;
@@ -115,7 +115,7 @@ export function createRemoteConfigClient(options: RemoteConfigOptions): RemoteCo
     try {
       payload = (await response.json()) as SignedConfig;
     } catch {
-      log?.error("tollway: remote config was not valid JSON — ignoring");
+      log?.error("octroi: remote config was not valid JSON — ignoring");
       return false;
     }
 
@@ -126,7 +126,7 @@ export function createRemoteConfigClient(options: RemoteConfigOptions): RemoteCo
     if (problem !== undefined) {
       // Refusing is the whole point: an attacker who can answer this request
       // must not be able to change what the merchant charges.
-      log?.error("tollway: refusing unverified remote config", { reason: problem });
+      log?.error("octroi: refusing unverified remote config", { reason: problem });
       return false;
     }
 
@@ -191,7 +191,7 @@ export async function validate(
 function hexToBytes(hex: string): Uint8Array {
   const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
   if (clean.length % 2 !== 0 || !/^[0-9a-fA-F]*$/.test(clean)) {
-    throw new Error("@tollway/ingest: publicKey must be valid hex");
+    throw new Error("@octroi/ingest: publicKey must be valid hex");
   }
   const bytes = new Uint8Array(clean.length / 2);
   for (let i = 0; i < bytes.length; i++) {

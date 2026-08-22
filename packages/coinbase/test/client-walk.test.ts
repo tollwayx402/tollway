@@ -11,8 +11,8 @@
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { decodePaymentHeader, createGate, RECEIPT_HEADER, verifyReceipt } from "@tollway/core";
-import type { Gate } from "@tollway/core";
+import { decodePaymentHeader, createGate, RECEIPT_HEADER, verifyReceipt } from "@octroi/core";
+import type { Gate } from "@octroi/core";
 import { coinbaseFacilitator } from "../src/index.js";
 import { routedFetch } from "./replay.js";
 import { agentFetch, capturePaymentHeader } from "../dev/agent.js";
@@ -90,7 +90,7 @@ describe("reference client interop", () => {
     await expect(response.json()).resolves.toEqual({ report: "the paid content" });
 
     const receiptId = response.headers.get(RECEIPT_HEADER);
-    expect(receiptId).toMatch(/^twy_rcpt_/);
+    expect(receiptId).toMatch(/^oct_rcpt_/);
     expect(receiptId).toBe(lastReceiptId);
 
     // One verify and one settle for the one payment.

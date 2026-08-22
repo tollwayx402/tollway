@@ -1,17 +1,17 @@
-# `@tollway/coinbase`
+# `@octroi/coinbase`
 
 The Coinbase/CDP x402 facilitator adapter: Base and Base Sepolia, USDC.
 
 ## Use
 
 ```ts
-import { createGate } from "@tollway/core";
-import { coinbaseFacilitator } from "@tollway/coinbase";
+import { createGate } from "@octroi/core";
+import { coinbaseFacilitator } from "@octroi/coinbase";
 
 const gate = createGate({
   price: "$0.004",
   network: "base",
-  payTo: process.env.TW_ADDRESS!,
+  payTo: process.env.OCT_ADDRESS!,
   facilitator: coinbaseFacilitator(),
 });
 ```
@@ -70,7 +70,7 @@ and treat `gate.error` spikes as an alert, not a shrug.
 ## Tests
 
 ```bash
-pnpm --filter @tollway/coinbase test
+pnpm --filter @octroi/coinbase test
 ```
 
 Three suites, none of which touch the network:
@@ -78,7 +78,7 @@ Three suites, none of which touch the network:
 - **`adapter.test.ts`** — the HTTP contract, replayed from
   `test/fixtures/exchanges.json`.
 - **`conformance.test.ts`** — the shared §11 contract suite from
-  `@tollway/core`, plus clock-skew handling.
+  `@octroi/core`, plus clock-skew handling.
 - **`client-walk.test.ts`** — the **official** `x402-fetch` client walking
   402 → pay → 200 against a real HTTP server running our gate. The client signs
   with a throwaway key; signing is free, so this needs no funds. This is the
@@ -95,13 +95,13 @@ a shape the real facilitator would never send.
 To record real ones (needs a funded Base Sepolia wallet):
 
 ```bash
-TW_AGENT_KEY=0x… TW_PAY_TO=0x… pnpm --filter @tollway/coinbase record
+OCT_AGENT_KEY=0x… OCT_PAY_TO=0x… pnpm --filter @octroi/coinbase record
 ```
 
 ## The live run
 
 ```bash
-TW_AGENT_KEY=0x… TW_PAY_TO=0x… pnpm --filter @tollway/coinbase e2e:testnet
+OCT_AGENT_KEY=0x… OCT_PAY_TO=0x… pnpm --filter @octroi/coinbase e2e:testnet
 ```
 
 Manual, or nightly via `.github/workflows/nightly.yml` — **never in PR CI**.

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tollway-ingest"
+name = "octroi-ingest"
 version = "0.1.0"
-description = "Tollway cloud event client for Python: batches gate events to a Tollway-compatible ingest endpoint."
+description = "Octroi cloud event client for Python: batches gate events to a Octroi-compatible ingest endpoint."
 readme = "README.md"
 license = { text = "BUSL-1.1" }
 requires-python = ">=3.9"
@@ -17,12 +17,12 @@ dependencies = []
 dev = ["pytest>=7"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tollway_ingest"]
+packages = ["src/octroi_ingest"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [project.urls]
-Homepage = "https://github.com/tollwayx402/tollway"
-Repository = "https://github.com/tollwayx402/tollway"
-Issues = "https://github.com/tollwayx402/tollway/issues"
+Homepage = "https://github.com/octroihq/octroi"
+Repository = "https://github.com/octroihq/octroi"
+Issues = "https://github.com/octroihq/octroi/issues"

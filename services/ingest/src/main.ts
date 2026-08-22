@@ -1,39 +1,39 @@
 /**
  * Entry point.
  *
- *   TW_API_KEYS='key1:acct_9d2,key2:acct_abc' node dist/main.js
+ *   OCT_API_KEYS='key1:acct_9d2,key2:acct_abc' node dist/main.js
  *
  * Env:
  *   PORT                 default 8787
- *   TW_DATA_DIR          default ./data
- *   TW_API_KEYS          comma-separated `apiKey:merchant` pairs (required)
- *   TW_CONFIG_SIGNER_JWK Ed25519 private JWK for signing GET /v1/config
- *   TW_RECEIPT_KEYS      comma-separated `merchant:publicKeyHex` for receipt verification
- *   TW_ROUTES            JSON: { "acct_9d2": { "/v1/report": { "price": "$0.02" } } }
+ *   OCT_DATA_DIR          default ./data
+ *   OCT_API_KEYS          comma-separated `apiKey:merchant` pairs (required)
+ *   OCT_CONFIG_SIGNER_JWK Ed25519 private JWK for signing GET /v1/config
+ *   OCT_RECEIPT_KEYS      comma-separated `merchant:publicKeyHex` for receipt verification
+ *   OCT_ROUTES            JSON: { "acct_9d2": { "/v1/report": { "price": "$0.02" } } }
  */
-import { createSignerFromJwk } from "@tollway/core";
+import { createSignerFromJwk } from "@octroi/core";
 import { createServer, type MerchantAccount } from "./server.js";
 import { EventStore } from "./store.js";
 
 function parseKeys(): Map<string, MerchantAccount> {
-  const raw = process.env["TW_API_KEYS"];
+  const raw = process.env["OCT_API_KEYS"];
   if (!raw) {
-    console.error("TW_API_KEYS is required, e.g. TW_API_KEYS='sk_live_x:acct_9d2'");
+    console.error("OCT_API_KEYS is required, e.g. OCT_API_KEYS='sk_live_x:acct_9d2'");
     process.exit(1);
   }
 
   const receiptKeys = new Map<string, string>();
-  for (const pair of (process.env["TW_RECEIPT_KEYS"] ?? "").split(",")) {
+  for (const pair of (process.env["OCT_RECEIPT_KEYS"] ?? "").split(",")) {
     const [merchant, key] = pair.split(":");
     if (merchant && key) receiptKeys.set(merchant.trim(), key.trim());
   }
 
   let routes: Record<string, MerchantAccount["routes"]> = {};
-  if (process.env["TW_ROUTES"]) {
+  if (process.env["OCT_ROUTES"]) {
     try {
-      routes = JSON.parse(process.env["TW_ROUTES"]) as typeof routes;
+      routes = JSON.parse(process.env["OCT_ROUTES"]) as typeof routes;
     } catch {
-      console.error("TW_ROUTES is not valid JSON");
+      console.error("OCT_ROUTES is not valid JSON");
       process.exit(1);
     }
   }
@@ -51,7 +51,7 @@ function parseKeys(): Map<string, MerchantAccount> {
   }
 
   if (keys.size === 0) {
-    console.error("TW_API_KEYS contained no valid `apiKey:merchant` pairs");
+    console.error("OCT_API_KEYS contained no valid `apiKey:merchant` pairs");
     process.exit(1);
   }
   return keys;
@@ -59,10 +59,10 @@ function parseKeys(): Map<string, MerchantAccount> {
 
 async function main(): Promise<void> {
   const port = Number(process.env["PORT"] ?? 8787);
-  const dataDir = process.env["TW_DATA_DIR"] ?? "./data";
+  const dataDir = process.env["OCT_DATA_DIR"] ?? "./data";
   const keys = parseKeys();
 
-  const configJwk = process.env["TW_CONFIG_SIGNER_JWK"];
+  const configJwk = process.env["OCT_CONFIG_SIGNER_JWK"];
   const configSigner = configJwk
     ? await createSignerFromJwk(JSON.parse(configJwk) as JsonWebKey)
     : undefined;
@@ -74,9 +74,9 @@ async function main(): Promise<void> {
   });
 
   app.listen(port, () => {
-    console.log(`tollway ingest on :${port}  (data: ${dataDir}, accounts: ${keys.size})`);
+    console.log(`octroi ingest on :${port}  (data: ${dataDir}, accounts: ${keys.size})`);
     if (configSigner === undefined) {
-      console.log("no TW_CONFIG_SIGNER_JWK — GET /v1/config will answer 503");
+      console.log("no OCT_CONFIG_SIGNER_JWK — GET /v1/config will answer 503");
     }
   });
 }

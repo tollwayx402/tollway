@@ -1,6 +1,6 @@
 import type { RejectCode } from "./types.js";
 
-export const DOC_BASE = "https://tollway.sh/docs/errors#";
+export const DOC_BASE = "https://octroi.ai/docs/errors#";
 
 /** Every 4xx/5xx body the SDK produces (§10). */
 export interface ErrorBody {
@@ -28,11 +28,11 @@ export function rejectMessage(code: RejectCode): string {
 }
 
 /** Thrown for merchant misconfiguration — always at construction time. */
-export class TollwayConfigError extends Error {
+export class OctroiConfigError extends Error {
   readonly code = "invalid_config";
   constructor(message: string) {
     super(message);
-    this.name = "TollwayConfigError";
+    this.name = "OctroiConfigError";
   }
 }
 

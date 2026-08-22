@@ -1,7 +1,7 @@
 {
-  "name": "@tollway/express",
+  "name": "@octroi/express",
   "version": "0.1.0",
-  "description": "Express middleware for Tollway: gate a route behind an x402 toll.",
+  "description": "Express middleware for Octroi: gate a route behind an x402 toll.",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -29,11 +29,11 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tollway/core": "workspace:*"
+    "@octroi/core": "workspace:*"
   },
   "peerDependencies": {
     "express": ">=4.18",
-    "@tollway/ingest": "workspace:*"
+    "@octroi/ingest": "workspace:*"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
@@ -41,10 +41,10 @@
     "express": "^5.1.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "@tollway/ingest": "workspace:*"
+    "@octroi/ingest": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@tollway/ingest": {
+    "@octroi/ingest": {
       "optional": true
     }
   },
@@ -53,9 +53,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "url": "git+https://github.com/octroihq/octroi.git",
     "directory": "packages/express"
   },
-  "homepage": "https://github.com/tollwayx402/tollway#readme",
-  "bugs": "https://github.com/tollwayx402/tollway/issues"
+  "homepage": "https://github.com/octroihq/octroi#readme",
+  "bugs": "https://github.com/octroihq/octroi/issues"
 }

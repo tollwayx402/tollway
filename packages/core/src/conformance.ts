@@ -39,7 +39,7 @@ export interface ConformanceOptions {
 
 const BASE_REQUIREMENTS: Omit<ChallengeRequest, "network"> = {
   route: "/conformance",
-  resource: "https://conformance.tollway.sh/conformance",
+  resource: "https://conformance.octroi.ai/conformance",
   description: "Conformance probe",
   mimeType: "application/json",
   asset: "usdc",

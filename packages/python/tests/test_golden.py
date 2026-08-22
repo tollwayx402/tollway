@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from tollway import GateRequest, canonical_json, create_gate, create_signer_from_jwk
-from tollway.testing import create_mock_facilitator, encode_payment_header, mock_payment
+from octroi import GateRequest, canonical_json, create_gate, create_signer_from_jwk
+from octroi.testing import create_mock_facilitator, encode_payment_header, mock_payment
 
 GOLDEN_DIR = Path(__file__).resolve().parents[3] / "golden"
 
@@ -51,7 +51,7 @@ def golden_gate():
 
     def new_id(prefix: str) -> str:
         counters[prefix] = counters.get(prefix, 0) + 1
-        return f"twy_{prefix}_{counters[prefix]:06d}"
+        return f"oct_{prefix}_{counters[prefix]:06d}"
 
     return create_gate(
         price="$0.004",

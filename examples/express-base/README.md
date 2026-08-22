@@ -5,7 +5,7 @@ A paid route in 20 lines ([server.js](server.js)), and an agent that pays it
 
 ```bash
 pnpm install
-TW_ADDRESS=0xYourSettlementAddress pnpm start
+OCT_ADDRESS=0xYourSettlementAddress pnpm start
 ```
 
 Then, in another terminal:
@@ -33,13 +33,13 @@ with the price, the network, and where to pay:
   "errorDetail": {
     "code": "payment_required",
     "message": "This route costs 0.004000 USDC.",
-    "doc": "https://tollway.sh/docs/errors#payment_required"
+    "doc": "https://octroi.ai/docs/errors#payment_required"
   }
 }
 ```
 
-With `TW_AGENT_KEY` set to a Base Sepolia wallet holding USDC, the agent pays
-and gets the content, plus an `x-tollway-receipt` header.
+With `OCT_AGENT_KEY` set to a Base Sepolia wallet holding USDC, the agent pays
+and gets the content, plus an `x-octroi-receipt` header.
 
 Get testnet USDC from the [Circle faucet](https://faucet.circle.com/).
 
@@ -51,7 +51,7 @@ domain follow from the network.
 Before you do, run the doctor:
 
 ```bash
-npx @tollway/gate doctor --pay-to $TW_ADDRESS --network base --skip-self-payment
+npx @octroi/gate doctor --pay-to $OCT_ADDRESS --network base --skip-self-payment
 ```
 
 It checks the config, the facilitator, and your clock. Clock skew is the one

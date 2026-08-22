@@ -6,7 +6,7 @@
     },
     "syntheticWhy": "The remaining entries need CDP credentials and a funded Base Sepolia wallet to record; settle.ok in particular cannot be honestly fabricated.",
     "validated": "Response bodies are checked against x402@1.2.0's VerifyResponseSchema / SettleResponseSchema by test/adapter.test.ts. Entries marked `recorded: true` are exempt: reality outranks the schema, and this one provably violates it.",
-    "howToReplace": "pnpm --filter @tollway/coinbase record  (see scripts/record.ts).",
+    "howToReplace": "pnpm --filter @octroi/coinbase record  (see scripts/record.ts).",
     "facilitatorUrl": "https://x402.org/facilitator"
   },
   "verify.ok": {

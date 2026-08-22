@@ -1,24 +1,24 @@
-# `@tollway/ingest`
+# `@octroi/ingest`
 
-The Tollway Cloud client: batches events to the ingest API, and polls signed
+The Octroi Cloud client: batches events to the ingest API, and polls signed
 route config.
 
 **BSL 1.1**, unlike the rest of the SDK. Nothing MIT in this repo depends on
-it — `@tollway/express` loads it lazily as an *optional* peer — so a standalone
+it — `@octroi/express` loads it lazily as an *optional* peer — so a standalone
 install has no BSL code in its tree, which is what §1.1 requires.
 
 ## Events
 
 ```ts
-import { createIngestClient } from "@tollway/ingest";
-import { tollway } from "@tollway/express";
+import { createIngestClient } from "@octroi/ingest";
+import { octroi } from "@octroi/express";
 
-const cloud = createIngestClient({ apiKey: process.env.TW_KEY! });
+const cloud = createIngestClient({ apiKey: process.env.OCT_KEY! });
 
-app.use("/v1/report", tollway({ …, sinks: [cloud.sink] }));
+app.use("/v1/report", octroi({ …, sinks: [cloud.sink] }));
 ```
 
-Or let the adapter do it: `tollway({ …, apiKey: process.env.TW_KEY })`.
+Or let the adapter do it: `octroi({ …, apiKey: process.env.OCT_KEY })`.
 
 Delivery is exactly §7: HTTPS, gzip, at-least-once, flush at 5s or 100 events,
 a 10k-event retry buffer, drop-oldest on overflow with a `gate.error` reporting
@@ -44,12 +44,12 @@ exponential backoff and then give up, loudly, rather than growing without bound.
 
 ```ts
 const config = createRemoteConfigClient({
-  apiKey: process.env.TW_KEY!,
-  publicKey: process.env.TW_CONFIG_PUBKEY!,   // pinned, hex
+  apiKey: process.env.OCT_KEY!,
+  publicKey: process.env.OCT_CONFIG_PUBKEY!,   // pinned, hex
 });
 config.start();
 
-app.use("/v1/report", tollway({
+app.use("/v1/report", octroi({
   price: remotePrice({ config, local: "$0.004" }),
   …
 }));

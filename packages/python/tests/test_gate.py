@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from tollway import (
+from octroi import (
     GateRequest,
     MemoryNonceStore,
-    TollwayConfigError,
+    OctroiConfigError,
     VerifyResult,
     create_gate,
     verify_receipt,
 )
-from tollway.testing import create_mock_facilitator, encode_payment_header, mock_payment
+from octroi.testing import create_mock_facilitator, encode_payment_header, mock_payment
 
 NOW = 1_765_432_100_000
 
@@ -26,7 +26,7 @@ def build(**overrides):
 
     def new_id(prefix: str) -> str:
         ids["n"] += 1
-        return f"twy_{prefix}_{ids['n']:04d}"
+        return f"oct_{prefix}_{ids['n']:04d}"
 
     options = {
         "price": "$0.004",
@@ -72,7 +72,7 @@ class TestChallenge:
         assert result.body["errorDetail"] == {
             "code": "payment_required",
             "message": "This route costs 0.004000 USDC.",
-            "doc": "https://tollway.sh/docs/errors#payment_required",
+            "doc": "https://octroi.ai/docs/errors#payment_required",
         }
         assert result.body["accepts"][0]["maxAmountRequired"] == "4000"
         assert [e["type"] for e in events] == ["challenge.issued"]
@@ -125,7 +125,7 @@ class TestSettlement:
         assert result.receipt["amount"] == "4000"
         assert result.receipt["payer"] == "0xpayer-1"
         assert result.receipt["tx_ref"] == "0xtx-1"
-        assert result.headers["x-tollway-receipt"] == result.receipt["id"]
+        assert result.headers["x-octroi-receipt"] == result.receipt["id"]
         assert verify_receipt(result.receipt, gate.public_key()) is True
         assert [e["type"] for e in events] == ["toll.settled"]
 
@@ -266,7 +266,7 @@ class TestFacilitatorOutages:
         result = await gate.handle(paid())
         assert result.is_pass
         assert result.receipt is None
-        assert "x-tollway-receipt" not in result.headers
+        assert "x-octroi-receipt" not in result.headers
 
         result.report(status=200, latency_ms=3)
         await gate.flush_events()
@@ -284,23 +284,23 @@ class TestFacilitatorOutages:
 
 class TestConfiguration:
     def test_rejects_a_mistyped_static_price_at_construction(self):
-        with pytest.raises(TollwayConfigError, match="could not parse price"):
+        with pytest.raises(OctroiConfigError, match="could not parse price"):
             build(price="4 dollars")
 
     def test_requires_a_settlement_address(self):
-        with pytest.raises(TollwayConfigError, match="pay_to"):
+        with pytest.raises(OctroiConfigError, match="pay_to"):
             build(pay_to="   ")
 
     def test_requires_facilitator_coverage_for_every_network(self):
-        with pytest.raises(TollwayConfigError, match='no configured facilitator supports network "solana"'):
+        with pytest.raises(OctroiConfigError, match='no configured facilitator supports network "solana"'):
             build(network=["base-sepolia", "solana"])
 
     def test_rejects_an_unknown_facilitator_id(self):
-        with pytest.raises(TollwayConfigError, match='unknown facilitator "coinbase"'):
+        with pytest.raises(OctroiConfigError, match='unknown facilitator "coinbase"'):
             build(facilitator="coinbase")
 
     def test_refuses_to_forget_a_payment_before_its_window_closes(self):
-        with pytest.raises(TollwayConfigError, match="at least the challenge window"):
+        with pytest.raises(OctroiConfigError, match="at least the challenge window"):
             build(expiry_seconds=120, replay_ttl_ms=119_000)
         build(expiry_seconds=120, replay_ttl_ms=120_000)
 

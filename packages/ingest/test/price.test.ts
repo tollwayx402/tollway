@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolvePrice, type GateRequest } from "@tollway/core";
+import { resolvePrice, type GateRequest } from "@octroi/core";
 import { remoteMode, remotePrice } from "../src/index.js";
 import type { RemoteConfigClient, RemoteRouteConfig } from "../src/index.js";
 

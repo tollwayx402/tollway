@@ -1,5 +1,5 @@
 /**
- * @tollway/core — the protocol core (§4). Framework-agnostic by construction:
+ * @octroi/core — the protocol core (§4). Framework-agnostic by construction:
  * nothing in this package imports a server, a chain client, or the cloud.
  */
 
@@ -31,7 +31,7 @@ export {
 export type { FacilitatorSpec } from "./facilitator.js";
 
 export { EventBus } from "./events.js";
-export type { EventBusOptions, EventSink, EventType, TollwayEvent } from "./events.js";
+export type { EventBusOptions, EventSink, EventType, OctroiEvent } from "./events.js";
 
 export {
   createEphemeralSigner,
@@ -67,7 +67,7 @@ export {
   CanonicalJsonError,
   DOC_BASE,
   FacilitatorUnreachableError,
-  TollwayConfigError,
+  OctroiConfigError,
   errorBody,
   rejectMessage,
 } from "./errors.js";

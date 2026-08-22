@@ -1,22 +1,22 @@
-# `@tollway/express`
+# `@octroi/express`
 
-Express middleware for Tollway. Gate a route, get paid, serve the 200.
+Express middleware for Octroi. Gate a route, get paid, serve the 200.
 
 ```ts
-import { tollway } from "@tollway/express";
+import { octroi } from "@octroi/express";
 
-app.use("/v1/report", tollway({
+app.use("/v1/report", octroi({
   price: "$0.004",                 // USD string, atomic bigint, or (req) => Price
   asset: "usdc",
   network: "base",
-  payTo: process.env.TW_ADDRESS,
+  payTo: process.env.OCT_ADDRESS,
   facilitator: "coinbase",
   mode: "fail_closed",
   onEvent: (e) => log.info(e),
 }));
 ```
 
-Everything is `@tollway/core`'s `GateOptions`, plus:
+Everything is `@octroi/core`'s `GateOptions`, plus:
 
 | Option | |
 | --- | --- |
@@ -28,7 +28,7 @@ The middleware exposes `.gate` for event sinks, `publicKey()`, and `doctor`.
 ## What it does
 
 - **Unpaid** → `402` with the challenge body, handler never runs.
-- **Paid** → sets `x-tollway-receipt`, calls `next()`.
+- **Paid** → sets `x-octroi-receipt`, calls `next()`.
 - **After the response** → reports the outcome. `finish` with `< 500` is
   `request.served`; `>= 500` is `request.failed`. A client that hangs up before
   the response completes is *also* `request.failed` — they paid and got
@@ -41,7 +41,7 @@ The middleware exposes `.gate` for event sinks, `publicKey()`, and `doctor`.
 Dynamic pricing gets the Express request:
 
 ```ts
-tollway({ price: (req) => (req.raw as Request).query.deep ? "$0.02" : "$0.004", … })
+octroi({ price: (req) => (req.raw as Request).query.deep ? "$0.02" : "$0.004", … })
 ```
 
 ## Behind a proxy

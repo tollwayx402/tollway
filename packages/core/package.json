@@ -1,5 +1,5 @@
 {
-  "name": "@tollway/core",
+  "name": "@octroi/core",
   "version": "0.1.0",
   "description": "Framework-agnostic x402 toll gate: challenges, verification pipeline, receipts, events, replay protection.",
   "license": "MIT",
@@ -44,9 +44,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "url": "git+https://github.com/octroihq/octroi.git",
     "directory": "packages/core"
   },
-  "homepage": "https://github.com/tollwayx402/tollway#readme",
-  "bugs": "https://github.com/tollwayx402/tollway/issues"
+  "homepage": "https://github.com/octroihq/octroi#readme",
+  "bugs": "https://github.com/octroihq/octroi/issues"
 }

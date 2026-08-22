@@ -12,7 +12,7 @@ export function dashboardHtml(): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tollway</title>
+<title>Octroi</title>
 <style>
   :root {
     color-scheme: light dark;
@@ -59,7 +59,7 @@ export function dashboardHtml(): string {
 </head>
 <body>
 <header>
-  <h1>Tollway</h1>
+  <h1>Octroi</h1>
   <div class="sub" id="sub">dashboard v1 — revenue, receipts, rejects, refund candidates</div>
 </header>
 <main>

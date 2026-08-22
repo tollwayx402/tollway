@@ -1,10 +1,10 @@
-# Tollway ingest + dashboard v1
+# Octroi ingest + dashboard v1
 
 The cloud side of §8, and the dashboard §12.4 asks for. BSL, private, not
 published.
 
 ```bash
-TW_API_KEYS='sk_live_abc:acct_9d2' pnpm --filter @tollway/service-ingest start
+OCT_API_KEYS='sk_live_abc:acct_9d2' pnpm --filter @octroi/service-ingest start
 # → http://localhost:8787
 ```
 
@@ -53,25 +53,25 @@ replacement keeps the shape: log authoritative, projections derived.
 
 | Env | |
 | --- | --- |
-| `TW_API_KEYS` | **required** — `apiKey:merchant` pairs, comma-separated |
-| `TW_DATA_DIR` | default `./data` |
+| `OCT_API_KEYS` | **required** — `apiKey:merchant` pairs, comma-separated |
+| `OCT_DATA_DIR` | default `./data` |
 | `PORT` | default 8787 |
-| `TW_CONFIG_SIGNER_JWK` | Ed25519 private JWK; without it `/v1/config` answers 503 |
-| `TW_RECEIPT_KEYS` | `merchant:publicKeyHex` pairs, for receipt verification |
-| `TW_ROUTES` | JSON of per-merchant route config to serve |
+| `OCT_CONFIG_SIGNER_JWK` | Ed25519 private JWK; without it `/v1/config` answers 503 |
+| `OCT_RECEIPT_KEYS` | `merchant:publicKeyHex` pairs, for receipt verification |
+| `OCT_ROUTES` | JSON of per-merchant route config to serve |
 
 ## Deploy
 
 ```bash
-docker build -f services/ingest/Dockerfile -t tollway-ingest .   # from the repo root
-docker run -p 8787:8787 -v tollway-data:/data \
-  -e TW_API_KEYS='sk_live_x:acct_9d2' tollway-ingest
+docker build -f services/ingest/Dockerfile -t octroi-ingest .   # from the repo root
+docker run -p 8787:8787 -v octroi-data:/data \
+  -e OCT_API_KEYS='sk_live_x:acct_9d2' octroi-ingest
 ```
 
 **Note: the Dockerfile has not been built on this machine (no Docker here) —
 verify the first build before pointing DNS at it.**
 
-Point `ingest.tollway.sh` (and `tollway.sh`, until a real docs site exists) at
+Point `ingest.octroi.ai` (and `octroi.ai`, until a real docs site exists) at
 it behind any TLS-terminating proxy. `GET /docs/errors` serves the §10 error
 reference, so the `doc` links in every SDK error body resolve the moment DNS
 does. Events are JSONL under `/data` — that volume IS the database; snapshot it

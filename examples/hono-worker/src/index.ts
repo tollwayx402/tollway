@@ -6,24 +6,24 @@
  * what lets one build run on Workers, Deno, Bun and Node alike.
  */
 import { Hono } from "hono";
-import { tollway } from "@tollway/hono";
-import { coinbaseFacilitator } from "@tollway/coinbase";
+import { octroi } from "@octroi/hono";
+import { coinbaseFacilitator } from "@octroi/coinbase";
 
-type Env = { TW_ADDRESS: string };
+type Env = { OCT_ADDRESS: string };
 
 const app = new Hono<{ Bindings: Env }>();
 
 // Built once per isolate, on first request (env is not available at module
 // scope on Workers).
-let middleware: ReturnType<typeof tollway> | undefined;
+let middleware: ReturnType<typeof octroi> | undefined;
 
 app.use("/v1/report", (c, next) => {
-  middleware ??= tollway({
+  middleware ??= octroi({
     price: "$0.004",
     network: "base-sepolia",
-    payTo: c.env.TW_ADDRESS,
+    payTo: c.env.OCT_ADDRESS,
     facilitator: coinbaseFacilitator(),
-    // Per-isolate caveats (see @tollway/hono README): replay protection and
+    // Per-isolate caveats (see @octroi/hono README): replay protection and
     // the ephemeral receipt key are per-isolate with the defaults. Pass a
     // shared NonceStore (Durable Object / KV) and a stored signer
     // (createSignerFromJwk) for anything that matters.

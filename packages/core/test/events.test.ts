@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventBus } from "../src/index.js";
-import type { TollwayEvent } from "../src/index.js";
+import type { OctroiEvent } from "../src/index.js";
 import { counterIds, fixedClock } from "../src/testing.js";
 
-function bus(sinks: Array<(e: TollwayEvent) => void | Promise<void>>) {
+function bus(sinks: Array<(e: OctroiEvent) => void | Promise<void>>) {
   const ids = counterIds();
   return new EventBus({
     sinks,
@@ -14,19 +14,19 @@ function bus(sinks: Array<(e: TollwayEvent) => void | Promise<void>>) {
 
 describe("EventBus", () => {
   it("stamps events with id, version, ts, route and merchant", async () => {
-    const seen: TollwayEvent[] = [];
+    const seen: OctroiEvent[] = [];
     const b = new EventBus({
       sinks: [(e) => void seen.push(e)],
       merchant: "acct_9d2",
       clock: () => 1_700_000_000_000,
-      newId: () => "twy_evt_0001",
+      newId: () => "oct_evt_0001",
     });
 
     const returned = b.emit("challenge.issued", "/v1/report", { nonce: "abc" });
     await b.flush();
 
     expect(returned).toEqual({
-      id: "twy_evt_0001",
+      id: "oct_evt_0001",
       v: 1,
       type: "challenge.issued",
       ts: 1_700_000_000_000,
@@ -38,7 +38,7 @@ describe("EventBus", () => {
   });
 
   it("defaults merchant to null in standalone mode", async () => {
-    const seen: TollwayEvent[] = [];
+    const seen: OctroiEvent[] = [];
     const b = bus([(e) => void seen.push(e)]);
     b.emit("gate.error", "/v1/report", { mode: "fail_closed" });
     await b.flush();
@@ -62,9 +62,9 @@ describe("EventBus", () => {
     await b.flush();
 
     expect(order).toEqual([
-      "challenge.issued:twy_evt_0001",
-      "toll.settled:twy_evt_0002",
-      "request.served:twy_evt_0003",
+      "challenge.issued:oct_evt_0001",
+      "toll.settled:oct_evt_0002",
+      "request.served:oct_evt_0003",
     ]);
   });
 

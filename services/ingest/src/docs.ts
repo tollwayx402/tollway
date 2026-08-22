@@ -2,7 +2,7 @@
  * The error reference, served at GET /docs/errors.
  *
  * Every 4xx/5xx body the SDK emits links to
- * `https://tollway.sh/docs/errors#<code>` (§10). Serving the page from the
+ * `https://octroi.ai/docs/errors#<code>` (§10). Serving the page from the
  * service means the links resolve the moment anything is deployed behind that
  * domain — a docs site can replace this later without changing a single
  * emitted URL.
@@ -37,7 +37,7 @@ export const ERROR_DOCS: ErrorDoc[] = [
     status: "402",
     meaning: "The payment authorization lapsed before it was verified.",
     action:
-      "Sign a fresh authorization. If this recurs with fresh signatures, compare your clock to the facilitator's — `npx @tollway/gate doctor` measures exactly this.",
+      "Sign a fresh authorization. If this recurs with fresh signatures, compare your clock to the facilitator's — `npx @octroi/gate doctor` measures exactly this.",
   },
   {
     code: "wrong_amount",
@@ -80,7 +80,7 @@ export const ERROR_DOCS: ErrorDoc[] = [
     code: "invalid_config",
     status: "500",
     meaning: "The merchant's gate is misconfigured (for example, a price resolver threw).",
-    action: "Merchant-side. Run `npx @tollway/gate doctor` against the same config.",
+    action: "Merchant-side. Run `npx @octroi/gate doctor` against the same config.",
   },
   {
     code: "invalid_resource",
@@ -122,7 +122,7 @@ export const ERROR_DOCS: ErrorDoc[] = [
     code: "config_unavailable",
     status: "503",
     meaning: "Cloud API: this deployment has no config signer, so signed remote config is off.",
-    action: "Self-hosters: set TW_CONFIG_SIGNER_JWK. SDK clients keep their local prices.",
+    action: "Self-hosters: set OCT_CONFIG_SIGNER_JWK. SDK clients keep their local prices.",
   },
 ];
 
@@ -144,7 +144,7 @@ export function errorDocsHtml(): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tollway — error reference</title>
+<title>Octroi — error reference</title>
 <style>
   :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
   body { margin: 0 auto; max-width: 720px; padding: 32px 20px 80px; line-height: 1.55; }
@@ -161,8 +161,8 @@ export function errorDocsHtml(): string {
 </style>
 </head>
 <body>
-<h1>Tollway error reference</h1>
-<p class="sub">Every 4xx/5xx from a Tollway gate carries
+<h1>Octroi error reference</h1>
+<p class="sub">Every 4xx/5xx from a Octroi gate carries
 <code>{ error: { code, message, doc } }</code> (on 402s, under
 <code>errorDetail</code>, with the spec-shaped x402 <code>error</code> beside
 it). The <code>doc</code> link points here.</p>

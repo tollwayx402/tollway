@@ -1,27 +1,27 @@
 #!/usr/bin/env node
 /**
- * `npx @tollway/gate doctor` (§10).
+ * `npx @octroi/gate doctor` (§10).
  */
 import { pathToFileURL } from "node:url";
 import { resolve } from "node:path";
-import { coinbaseFacilitator, DEFAULT_FACILITATOR_URL } from "@tollway/coinbase";
-import type { GateOptions, Network } from "@tollway/core";
+import { coinbaseFacilitator, DEFAULT_FACILITATOR_URL } from "@octroi/coinbase";
+import type { GateOptions, Network } from "@octroi/core";
 import { doctor, formatReport, type DoctorOptions } from "./doctor.js";
 
-const USAGE = `tollway doctor — check a gate's config, its facilitator, and the whole payment path
+const USAGE = `octroi doctor — check a gate's config, its facilitator, and the whole payment path
 
 Usage:
-  npx @tollway/gate doctor [options]
+  npx @octroi/gate doctor [options]
 
 Options:
   --config <path>          module whose default export is the gate options
   --price <price>          e.g. '$0.004'
   --network <network>      e.g. base-sepolia            (default: base-sepolia)
-  --pay-to <address>       settlement address           (env: TW_ADDRESS)
+  --pay-to <address>       settlement address           (env: OCT_ADDRESS)
   --asset <asset>          default: usdc
   --mode <mode>            fail_closed | fail_open
-  --facilitator-url <url>  default: ${DEFAULT_FACILITATOR_URL}   (env: TW_FACILITATOR)
-  --agent-key <0x…>        testnet key for the self-payment (env: TW_AGENT_KEY)
+  --facilitator-url <url>  default: ${DEFAULT_FACILITATOR_URL}   (env: OCT_FACILITATOR)
+  --agent-key <0x…>        testnet key for the self-payment (env: OCT_AGENT_KEY)
   --skip-self-payment      config, facilitator and skew only
   --json                   machine-readable output
   -h, --help
@@ -84,16 +84,16 @@ async function main(): Promise<number> {
   }
 
   const facilitatorUrl =
-    flags["facilitator-url"] ?? process.env["TW_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
+    flags["facilitator-url"] ?? process.env["OCT_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
   const network = (flags["network"] ?? "base-sepolia") as Network;
 
   let gateOptions: GateOptions;
   if (flags["config"] !== undefined) {
     gateOptions = await loadConfig(flags["config"]);
   } else {
-    const payTo = flags["pay-to"] ?? process.env["TW_ADDRESS"];
+    const payTo = flags["pay-to"] ?? process.env["OCT_ADDRESS"];
     if (payTo === undefined) {
-      console.error("missing --pay-to (or TW_ADDRESS)\n\n" + USAGE);
+      console.error("missing --pay-to (or OCT_ADDRESS)\n\n" + USAGE);
       return 1;
     }
     gateOptions = {
@@ -103,11 +103,11 @@ async function main(): Promise<number> {
       payTo,
       facilitator: coinbaseFacilitator({ url: facilitatorUrl, networks: [network] }),
       ...(flags["mode"] === undefined ? {} : { mode: flags["mode"] as GateOptions["mode"] }),
-      resourceBase: "https://doctor.tollway.local",
+      resourceBase: "https://doctor.octroi.local",
     };
   }
 
-  const agentKey = flags["agent-key"] ?? process.env["TW_AGENT_KEY"];
+  const agentKey = flags["agent-key"] ?? process.env["OCT_AGENT_KEY"];
   const options: DoctorOptions = {
     gate: gateOptions,
     facilitatorUrl,
@@ -120,7 +120,7 @@ async function main(): Promise<number> {
   if (bools.has("json")) {
     console.log(JSON.stringify(report, null, 2));
   } else {
-    console.log(`tollway doctor — ${facilitatorUrl}\n`);
+    console.log(`octroi doctor — ${facilitatorUrl}\n`);
     console.log(formatReport(report));
   }
 

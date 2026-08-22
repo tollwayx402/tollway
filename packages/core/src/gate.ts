@@ -12,7 +12,7 @@ import {
 import { EventBus, type EventSink } from "./events.js";
 import {
   FacilitatorUnreachableError,
-  TollwayConfigError,
+  OctroiConfigError,
   errorBody,
   rejectMessage,
 } from "./errors.js";
@@ -183,23 +183,23 @@ export class Gate {
     this.#logger = options.logger ?? silentLogger;
     this.#clock = options.clock ?? (() => Date.now());
     this.#newNonce = options.newNonce ?? (() => toHex(randomBytes(16)));
-    this.#newId = options.newId ?? ((prefix) => `twy_${prefix}_${toHex(randomBytes(12))}`);
+    this.#newId = options.newId ?? ((prefix) => `oct_${prefix}_${toHex(randomBytes(12))}`);
 
     this.asset = options.asset ?? "usdc";
     this.#decimals = assetDecimals(this.asset, options.decimals);
 
     this.networks = Array.isArray(options.network) ? [...options.network] : [options.network];
     if (this.networks.length === 0) {
-      throw new TollwayConfigError("at least one network is required");
+      throw new OctroiConfigError("at least one network is required");
     }
 
     const specs = Array.isArray(options.facilitator) ? options.facilitator : [options.facilitator];
-    if (specs.length === 0) throw new TollwayConfigError("a facilitator is required");
+    if (specs.length === 0) throw new OctroiConfigError("a facilitator is required");
     this.#adapters = specs.map(resolveFacilitator);
 
     for (const network of this.networks) {
       if (!adapterForNetwork(this.#adapters, network)) {
-        throw new TollwayConfigError(
+        throw new OctroiConfigError(
           `no configured facilitator supports network "${network}" ` +
             `(have: ${this.#adapters.map((a) => `${a.id}[${a.networks.join(",")}]`).join(", ")})`,
         );
@@ -207,12 +207,12 @@ export class Gate {
     }
 
     if (typeof options.payTo !== "string" || options.payTo.trim().length === 0) {
-      throw new TollwayConfigError("`payTo` is required — the SDK never holds funds (§1.4)");
+      throw new OctroiConfigError("`payTo` is required — the SDK never holds funds (§1.4)");
     }
     this.#payTo = options.payTo;
 
     if (options.resourceBase !== undefined && !isAbsoluteUrl(options.resourceBase)) {
-      throw new TollwayConfigError(
+      throw new OctroiConfigError(
         `resourceBase must be an absolute URL, got "${options.resourceBase}"`,
       );
     }
@@ -220,7 +220,7 @@ export class Gate {
 
     this.mode = options.mode ?? "fail_closed";
     if (this.mode !== "fail_closed" && this.mode !== "fail_open") {
-      throw new TollwayConfigError(`mode must be "fail_closed" or "fail_open", got "${this.mode}"`);
+      throw new OctroiConfigError(`mode must be "fail_closed" or "fail_open", got "${this.mode}"`);
     }
 
     // Catch a mistyped static price at boot rather than on the first request.
@@ -236,7 +236,7 @@ export class Gate {
     // A payment can be presented at any point in the challenge window, so
     // forgetting it sooner than that window closes is an open replay hole.
     if (this.#replayTtlMs < this.#expirySeconds * 1_000) {
-      throw new TollwayConfigError(
+      throw new OctroiConfigError(
         `replayTtlMs (${this.#replayTtlMs}) must be at least the challenge window ` +
           `(expirySeconds ${this.#expirySeconds} = ${this.#expirySeconds * 1_000}ms), ` +
           `or a payment could be replayed after the store forgets it but before it expires`,
@@ -256,7 +256,7 @@ export class Gate {
         ["attemptsPerMinutePerPayer", attemptsPerMinutePerPayer],
       ] as const) {
         if (rate !== undefined && (!Number.isFinite(rate) || rate <= 0)) {
-          throw new TollwayConfigError(`rateLimit.${name} must be a positive number, got ${rate}`);
+          throw new OctroiConfigError(`rateLimit.${name} must be a positive number, got ${rate}`);
         }
       }
     }
@@ -289,7 +289,7 @@ export class Gate {
       // does not apply: we never serve a route we cannot price.
       const message = error instanceof Error ? error.message : String(error);
       this.events.emit("gate.error", route, { code: "invalid_config", message, mode: "fail_closed" });
-      this.#logger.error("tollway: could not resolve price", { route, error: message });
+      this.#logger.error("octroi: could not resolve price", { route, error: message });
       return {
         type: "error",
         status: 500,
@@ -312,7 +312,7 @@ export class Gate {
         message,
         mode: "fail_closed",
       });
-      this.#logger.error("tollway: could not build an absolute resource URL", {
+      this.#logger.error("octroi: could not build an absolute resource URL", {
         route,
         error: message,
       });
@@ -444,7 +444,7 @@ export class Gate {
         requirements.set(network, requirement);
       } catch (error) {
         // One network failing to price should not take the others down.
-        this.#logger.warn("tollway: facilitator could not build a challenge", {
+        this.#logger.warn("octroi: facilitator could not build a challenge", {
           route,
           network,
           facilitator: adapter.id,
@@ -684,7 +684,7 @@ export class Gate {
       message,
       mode: this.mode,
     });
-    this.#logger.error("tollway: facilitator unreachable", {
+    this.#logger.error("octroi: facilitator unreachable", {
       route,
       facilitator: adapter.id,
       mode: this.mode,
@@ -741,7 +741,7 @@ export class Gate {
     if (this.#resourceBase !== undefined) {
       return new URL(candidate, this.#resourceBase).toString();
     }
-    throw new TollwayConfigError(
+    throw new OctroiConfigError(
       `x402 requires an absolute URL for \`resource\`, but this request only supplied "${candidate}". ` +
         "Pass `req.url` from the adapter, or set `resourceBase` on the gate.",
     );

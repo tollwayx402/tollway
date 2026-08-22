@@ -73,7 +73,7 @@ async function signerFromKeys(privateKey: CryptoKey, publicKey: CryptoKey): Prom
 }
 
 /**
- * There is exactly one signing rule in Tollway: Ed25519 over the canonical
+ * There is exactly one signing rule in Octroi: Ed25519 over the canonical
  * JSON of the document minus its `sig` field, encoded base64url. Receipts use
  * it; so does signed remote config. Anything else that needs a signature
  * should use these rather than inventing a second construction.

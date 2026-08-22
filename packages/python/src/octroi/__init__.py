@@ -1,7 +1,7 @@
-"""Tollway — toll gates for HTTP routes.
+"""Octroi — toll gates for HTTP routes.
 
-The Python port of ``@tollway/core``. One protocol core, thin adapters; the
-FastAPI binding lives in :mod:`tollway.fastapi` and needs ``tollway[fastapi]``.
+The Python port of ``@octroi/core``. One protocol core, thin adapters; the
+FastAPI binding lives in :mod:`octroi.fastapi` and needs ``octroi[fastapi]``.
 
 The wire format is identical to the TypeScript SDK, byte for byte — the golden
 files in ``golden/`` are the contract, and ``tests/test_golden.py`` holds this
@@ -27,11 +27,11 @@ from .errors import (
     DOC_BASE,
     FacilitatorUnreachableError,
     PaymentDecodeError,
-    TollwayConfigError,
+    OctroiConfigError,
     error_body,
     reject_message,
 )
-from .events import EventBus, EventSink, TollwayEvent
+from .events import EventBus, EventSink, OctroiEvent
 from .facilitator import (
     FacilitatorAdapter,
     VerifyResult,
@@ -81,8 +81,8 @@ __all__ = [
     "NonceStore",
     "PaymentDecodeError",
     "Signer",
-    "TollwayConfigError",
-    "TollwayEvent",
+    "OctroiConfigError",
+    "OctroiEvent",
     "VerifyResult",
     "adapter_for_network",
     "asset_decimals",

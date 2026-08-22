@@ -1,7 +1,7 @@
 /**
  * The edge-runtime contract.
  *
- * `@tollway/core` and `@tollway/hono` must run unmodified on Cloudflare
+ * `@octroi/core` and `@octroi/hono` must run unmodified on Cloudflare
  * Workers, Deno and Bun. Nothing in the type system enforces that: a single
  * `import { randomBytes } from "node:crypto"` compiles, tests green on Node,
  * and only fails at deploy. So it is asserted here, over the source.

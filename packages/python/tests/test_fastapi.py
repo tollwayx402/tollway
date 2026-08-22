@@ -6,9 +6,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from tollway import verify_receipt
-from tollway.fastapi import Tollway
-from tollway.testing import create_mock_facilitator, encode_payment_header, mock_payment
+from octroi import verify_receipt
+from octroi.fastapi import Octroi
+from octroi.testing import create_mock_facilitator, encode_payment_header, mock_payment
 
 
 def build_app(**overrides):
@@ -18,9 +18,9 @@ def build_app(**overrides):
     )
 
     app = FastAPI()
-    Tollway.install(app)
+    Octroi.install(app)
 
-    tw = Tollway(
+    tw = Octroi(
         pay_to="0xmerchant",
         network="base-sepolia",
         facilitator=facilitator,
@@ -65,11 +65,11 @@ def test_paid_request_is_served_with_a_receipt_header():
 
     assert response.status_code == 200
     assert response.json() == {"report": "paid content"}
-    assert response.headers["x-tollway-receipt"].startswith("twy_rcpt_")
+    assert response.headers["x-octroi-receipt"].startswith("oct_rcpt_")
 
     types = [e["type"] for e in events]
     assert types == ["toll.settled", "request.served"]
-    assert events[1]["data"]["receipt_id"] == response.headers["x-tollway-receipt"]
+    assert events[1]["data"]["receipt_id"] == response.headers["x-octroi-receipt"]
     assert events[1]["data"]["status"] == 200
 
 
@@ -91,7 +91,7 @@ def test_a_handler_that_raises_is_reported_as_a_refund_candidate():
 
     assert response.status_code == 500
     assert [e["type"] for e in events] == ["toll.settled", "request.failed"]
-    assert events[1]["data"]["receipt_id"].startswith("twy_rcpt_")
+    assert events[1]["data"]["receipt_id"].startswith("oct_rcpt_")
 
 
 def test_events_are_labelled_with_the_route_pattern_not_the_expansion():
@@ -135,6 +135,6 @@ def test_fail_open_serves_without_a_receipt():
         response = client.get("/v1/report", headers=PAID)
 
     assert response.status_code == 200
-    assert "x-tollway-receipt" not in response.headers
+    assert "x-octroi-receipt" not in response.headers
     assert [e["type"] for e in events] == ["gate.error", "request.served"]
     assert events[1]["data"]["receipt_id"] is None

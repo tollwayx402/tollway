@@ -3,7 +3,7 @@
  * charges, so these tests are mostly about what must be *refused*.
  */
 import { describe, expect, it, vi } from "vitest";
-import { createEphemeralSigner, signDocument, type Signer } from "@tollway/core";
+import { createEphemeralSigner, signDocument, type Signer } from "@octroi/core";
 import { createRemoteConfigClient, validateSignedConfig } from "../src/index.js";
 import type { SignedConfig } from "../src/index.js";
 
@@ -170,7 +170,7 @@ describe("polling", () => {
     const fetchImpl = (async () => {
       call += 1;
       if (call === 1) return new Response(JSON.stringify(await signedConfig(signer)), { status: 200 });
-      throw new TypeError("ENOTFOUND ingest.tollway.sh");
+      throw new TypeError("ENOTFOUND ingest.octroi.ai");
     }) as unknown as typeof fetch;
 
     const client = createRemoteConfigClient({

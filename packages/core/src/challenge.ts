@@ -9,7 +9,7 @@ export const X402_VERSION = 1;
 /** Header the agent sends its payment payload in. */
 export const PAYMENT_HEADER = "x-payment";
 /** Header the receipt id is returned in (§6). */
-export const RECEIPT_HEADER = "x-tollway-receipt";
+export const RECEIPT_HEADER = "x-octroi-receipt";
 
 /**
  * Body of a 402 — a superset, never a replacement (see PROTOCOL.md §1).
@@ -35,7 +35,7 @@ export interface ChallengeBody {
  * reference client, so we map onto the enum and keep our real code in
  * `errorDetail`.
  *
- * Verified against `x402@1.2.0` by `test/interop.test.ts`. When a Tollway code
+ * Verified against `x402@1.2.0` by `test/interop.test.ts`. When a Octroi code
  * has no enum equivalent — including `payment_required`, which is a first
  * contact rather than an error — the field is omitted.
  */
@@ -69,7 +69,7 @@ export function buildChallengeBody(
 }
 
 /**
- * Read the Tollway error envelope out of any SDK response body, 402 or not.
+ * Read the Octroi error envelope out of any SDK response body, 402 or not.
  * Adapters, `doctor` and client code should use this rather than reaching for
  * a key directly, since 402s carry it under `errorDetail` and everything else
  * under `error`.

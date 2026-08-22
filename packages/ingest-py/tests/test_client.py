@@ -7,7 +7,7 @@ import gzip
 import json
 from typing import Dict, List, Tuple
 
-from tollway_ingest import IngestClient
+from octroi_ingest import IngestClient
 
 
 def event(id_: str, type_: str = "toll.settled") -> Dict:

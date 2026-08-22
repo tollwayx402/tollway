@@ -11,7 +11,7 @@
  * `doctor` (§12.3) consumes this. The thresholds below are provisional until
  * measured against real CDP behaviour in the live testnet run.
  */
-import { FacilitatorUnreachableError } from "@tollway/core";
+import { FacilitatorUnreachableError } from "@octroi/core";
 import { DEFAULT_FACILITATOR_URL } from "./constants.js";
 
 export interface ClockSkewOptions {

@@ -1,15 +1,15 @@
 /**
  * Record real facilitator exchanges into `test/fixtures/exchanges.json`.
  *
- *   pnpm --filter @tollway/coinbase record
+ *   pnpm --filter @octroi/coinbase record
  *
  * Requires a funded Base Sepolia wallet, because a genuine `settle.ok` can only
  * come from a payment that actually settles:
  *
- *   TW_AGENT_KEY   private key of a wallet holding Base Sepolia USDC
- *   TW_PAY_TO      settlement address to pay
- *   TW_FACILITATOR facilitator URL (default: the public one)
- *   TW_CDP_JWT     bearer token, if pointing at CDP
+ *   OCT_AGENT_KEY   private key of a wallet holding Base Sepolia USDC
+ *   OCT_PAY_TO      settlement address to pay
+ *   OCT_FACILITATOR facilitator URL (default: the public one)
+ *   OCT_CDP_JWT     bearer token, if pointing at CDP
  *
  * This is a **manual** job. CI replays what it writes; it never runs this.
  * Faucet flakiness must not be able to turn a build red.
@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { baseSepolia } from "viem/chains";
-import { createGate, decodePaymentHeader } from "@tollway/core";
+import { createGate, decodePaymentHeader } from "@octroi/core";
 import { wrapFetchWithPayment } from "x402-fetch";
 import { coinbaseFacilitator, DEFAULT_FACILITATOR_URL } from "../src/index.ts";
 import { agentWallet, capturePaymentHeader } from "../dev/agent.ts";
@@ -36,9 +36,9 @@ function required(name: string): string {
   return value;
 }
 
-const facilitatorUrl = process.env["TW_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
-const agentKey = required("TW_AGENT_KEY") as `0x${string}`;
-const payTo = required("TW_PAY_TO");
+const facilitatorUrl = process.env["OCT_FACILITATOR"] ?? DEFAULT_FACILITATOR_URL;
+const agentKey = required("OCT_AGENT_KEY") as `0x${string}`;
+const payTo = required("OCT_PAY_TO");
 
 const recorded: Record<string, unknown> = {};
 
@@ -84,9 +84,9 @@ async function main() {
   const { account } = agentWallet(agentKey);
   console.log(`recording against ${facilitatorUrl} as ${account.address}\n`);
 
-  const authHeaders = process.env["TW_CDP_JWT"]
+  const authHeaders = process.env["OCT_CDP_JWT"]
     ? () => {
-        const header = { authorization: `Bearer ${process.env["TW_CDP_JWT"]}` };
+        const header = { authorization: `Bearer ${process.env["OCT_CDP_JWT"]}` };
         return { verify: header, settle: header };
       }
     : undefined;
@@ -98,7 +98,7 @@ async function main() {
     asset: "usdc",
     network: "base-sepolia",
     payTo,
-    resourceBase: "https://record.tollway.local",
+    resourceBase: "https://record.octroi.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
       fetchImpl: recordingFetch({ verify: "verify.ok", settle: "settle.ok" }),
@@ -112,7 +112,7 @@ async function main() {
   // Drive the reference client to produce a real signed payload.
   const header = await capturePaymentHeader(
     agentKey,
-    "https://record.tollway.local/v1/report",
+    "https://record.octroi.local/v1/report",
     challenge.body,
   );
 
@@ -131,7 +131,7 @@ async function main() {
     asset: "usdc",
     network: "base-sepolia",
     payTo,
-    resourceBase: "https://record.tollway.local",
+    resourceBase: "https://record.octroi.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
       // The replay verifies again (same valid authorization) and fails at
@@ -155,7 +155,7 @@ async function main() {
     asset: "usdc",
     network: "base-sepolia",
     payTo,
-    resourceBase: "https://record.tollway.local",
+    resourceBase: "https://record.octroi.local",
     facilitator: coinbaseFacilitator({
       url: facilitatorUrl,
       fetchImpl: recordingFetch({ verify: "verify.badSignature", settle: null }),
@@ -177,7 +177,7 @@ async function main() {
       recordedAt: new Date().toISOString(),
       facilitatorUrl,
       network: "base-sepolia",
-      note: "Regenerate with `pnpm --filter @tollway/coinbase record`. Entries not overwritten by this run remain synthetic.",
+      note: "Regenerate with `pnpm --filter @octroi/coinbase record`. Entries not overwritten by this run remain synthetic.",
     },
   };
   writeFileSync(FIXTURES, `${JSON.stringify(merged, null, 2)}\n`, "utf8");

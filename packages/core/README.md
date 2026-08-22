@@ -1,9 +1,9 @@
-# `@tollway/core`
+# `@octroi/core`
 
-The Tollway protocol core: 402 challenges, payment verification, receipts,
+The Octroi protocol core: 402 challenges, payment verification, receipts,
 events and replay protection. No framework, no chain client, no cloud.
 
-Framework adapters (`@tollway/express`, `@tollway/hono`, `tollway[fastapi]`) do
+Framework adapters (`@octroi/express`, `@octroi/hono`, `octroi[fastapi]`) do
 three things: map their request onto `GateRequest`, render a halt, and report
 the outcome. That is the whole adapter contract, and it is why they fit in 150
 lines.
@@ -11,7 +11,7 @@ lines.
 ## Install
 
 ```bash
-npm install @tollway/core
+npm install @octroi/core
 ```
 
 Requires WebCrypto with Ed25519: Node 20+, Deno, Bun, or Workers.
@@ -19,13 +19,13 @@ Requires WebCrypto with Ed25519: Node 20+, Deno, Bun, or Workers.
 ## Use
 
 ```ts
-import { createGate } from "@tollway/core";
+import { createGate } from "@octroi/core";
 
 const gate = createGate({
   price: "$0.004",              // USD string, atomic bigint, or (req) => Price
   asset: "usdc",
   network: "base",              // or ["base", "solana"] — ordered, all advertised
-  payTo: process.env.TW_ADDRESS!,
+  payTo: process.env.OCT_ADDRESS!,
   facilitator: "coinbase",      // registered id, or an adapter instance
   mode: "fail_closed",          // or "fail_open" — explicit, never silent
   onEvent: (e) => log.info(e),
@@ -43,7 +43,7 @@ if (result.type !== "pass") {
   return;
 }
 
-res.set(result.headers);                       // x-tollway-receipt: twy_rcpt_…
+res.set(result.headers);                       // x-octroi-receipt: oct_rcpt_…
 const started = Date.now();
 await handler(req, res);
 result.report({ status: res.statusCode, latencyMs: Date.now() - started });
@@ -62,11 +62,11 @@ missing `payTo`, a network no configured facilitator supports).
 | `FacilitatorAdapter` | the four-member interface every facilitator implements (§5) |
 | `registerFacilitator` | makes `facilitator: "coinbase"` resolvable, without core depending on the adapter |
 | `Receipt`, `signReceipt`, `verifyReceipt` | signed proof that a request was paid (§6) |
-| `EventBus`, `TollwayEvent` | the event stream the dashboard is a pure function of (§7) |
+| `EventBus`, `OctroiEvent` | the event stream the dashboard is a pure function of (§7) |
 | `NonceStore`, `MemoryNonceStore` | replay protection; swap in Redis for multi-instance |
 | `parsePrice`, `canonicalJson` | the two things easiest to get subtly wrong |
 
-`@tollway/core/testing` ships a mock facilitator, a deterministic clock and id
+`@octroi/core/testing` ships a mock facilitator, a deterministic clock and id
 generator, and payload helpers — used by the adapter contract-test suite.
 
 ## Reading order

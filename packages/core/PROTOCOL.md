@@ -1,4 +1,4 @@
-# Wire protocol — `@tollway/core`
+# Wire protocol — `@octroi/core`
 
 **x402 revision pinned: `x402Version: 1`** (constant `X402_VERSION` in `src/challenge.ts`).
 
@@ -65,7 +65,7 @@ An unpaid request gets `402` with `content-type: application/json` and:
   "errorDetail": {
     "code": "payment_required",
     "message": "This route costs 0.004000 USDC.",
-    "doc": "https://tollway.sh/docs/errors#payment_required"
+    "doc": "https://octroi.ai/docs/errors#payment_required"
   }
 }
 ```
@@ -104,7 +104,7 @@ Verified against `x402@1.2.0` (`test/interop.test.ts`, run in CI):
 own codes fail `parse` outright. So core maps onto the enum and keeps the
 precise code in `errorDetail.code`:
 
-| Tollway code | x402 `error` | Note |
+| Octroi code | x402 `error` | Note |
 | --- | --- | --- |
 | `payment_required` | *omitted* | a first contact is not one of the enum's reasons |
 | `invalid_payment` | `invalid_payment` | |
@@ -155,8 +155,8 @@ exceptions core reads best-effort:
 
 ## 3. Success
 
-- `200` (whatever the handler returns) with `x-tollway-receipt: <receipt id>`.
-- `toll.settled` carries the full receipt; `x-tollway-receipt` carries only the
+- `200` (whatever the handler returns) with `x-octroi-receipt: <receipt id>`.
+- `toll.settled` carries the full receipt; `x-octroi-receipt` carries only the
   id, since the receipt object exceeds a comfortable header budget.
 
 ## 4. Failure

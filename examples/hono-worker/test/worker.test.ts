@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import app from "../src/index.js";
 
-const env = { TW_ADDRESS: "0x1111111111111111111111111111111111111111" };
+const env = { OCT_ADDRESS: "0x1111111111111111111111111111111111111111" };
 
 describe("hono-worker example", () => {
   it("answers an unpaid request with a client-parseable 402", async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TollwayConfigError, formatAtomic, parsePrice, resolvePrice } from "../src/index.js";
+import { OctroiConfigError, formatAtomic, parsePrice, resolvePrice } from "../src/index.js";
 import type { GateRequest } from "../src/index.js";
 
 const usdc = { asset: "usdc" as const };
@@ -27,14 +27,14 @@ describe("parsePrice", () => {
   });
 
   it("rejects more precision than the asset carries", () => {
-    expect(() => parsePrice("$0.0000004", usdc)).toThrow(TollwayConfigError);
+    expect(() => parsePrice("$0.0000004", usdc)).toThrow(OctroiConfigError);
     expect(() => parsePrice("$0.0000004", usdc)).toThrow(/7 decimal places but usdc carries 6/);
   });
 
   it("rejects unparseable and non-positive prices", () => {
-    expect(() => parsePrice("free", usdc)).toThrow(TollwayConfigError);
-    expect(() => parsePrice("0.004 USDC", usdc)).toThrow(TollwayConfigError);
-    expect(() => parsePrice("-$1", usdc)).toThrow(TollwayConfigError);
+    expect(() => parsePrice("free", usdc)).toThrow(OctroiConfigError);
+    expect(() => parsePrice("0.004 USDC", usdc)).toThrow(OctroiConfigError);
+    expect(() => parsePrice("-$1", usdc)).toThrow(OctroiConfigError);
     expect(() => parsePrice("$0", usdc)).toThrow(/greater than zero/);
     expect(() => parsePrice(0n, usdc)).toThrow(/greater than zero/);
     expect(() => parsePrice(-5n, usdc)).toThrow(/greater than zero/);

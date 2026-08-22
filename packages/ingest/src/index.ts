@@ -1,9 +1,9 @@
 /**
- * `@tollway/ingest` — the cloud client. BSL, and deliberately optional: no MIT
- * package in this repo depends on it, so the SDK works with no Tollway account
+ * `@octroi/ingest` — the cloud client. BSL, and deliberately optional: no MIT
+ * package in this repo depends on it, so the SDK works with no Octroi account
  * and no BSL code in the tree (§1.1).
  */
-import type { GateRequest, Mode, Price, PriceConfig } from "@tollway/core";
+import type { GateRequest, Mode, Price, PriceConfig } from "@octroi/core";
 import type { RemoteConfigClient } from "./config.js";
 
 export { createIngestClient, DEFAULT_INGEST_URL } from "./client.js";

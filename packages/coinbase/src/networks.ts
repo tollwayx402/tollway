@@ -1,4 +1,4 @@
-import type { Network } from "@tollway/core";
+import type { Network } from "@octroi/core";
 
 /**
  * Per-network asset facts for every EVM network the reference client can

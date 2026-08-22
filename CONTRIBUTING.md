@@ -1,6 +1,6 @@
-# Contributing to Tollway
+# Contributing to Octroi
 
-Thanks for helping build Tollway. A few things keep the project healthy.
+Thanks for helping build Octroi. A few things keep the project healthy.
 
 ## Ground rules
 
@@ -25,7 +25,7 @@ git commit -s -m "your message"
 That line certifies you wrote the change (or have the right to submit it) under
 the repository's licenses. See https://developercertificate.org.
 
-> Note: as an open-core project, Tollway may later ask contributors to a CLA if
+> Note: as an open-core project, Octroi may later ask contributors to a CLA if
 > we need broader relicensing rights. We'll be explicit if that changes.
 
 ## Getting started

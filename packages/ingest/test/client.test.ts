@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import type { TollwayEvent } from "@tollway/core";
+import type { OctroiEvent } from "@octroi/core";
 import { createIngestClient } from "../src/client.js";
 
-function event(id: string, type: TollwayEvent["type"] = "toll.settled"): TollwayEvent {
+function event(id: string, type: OctroiEvent["type"] = "toll.settled"): OctroiEvent {
   return { id, v: 1, type, ts: 1_765_432_100_000, route: "/v1/report", merchant: "acct_9d2", data: {} };
 }
 
 interface Capture {
   fetch: typeof fetch;
-  requests: Array<{ headers: Record<string, string>; body: Uint8Array; events: TollwayEvent[] }>;
+  requests: Array<{ headers: Record<string, string>; body: Uint8Array; events: OctroiEvent[] }>;
 }
 
 function capturingFetch(respond: (attempt: number) => Response | Promise<Response>): Capture {
@@ -30,7 +30,7 @@ function capturingFetch(respond: (attempt: number) => Response | Promise<Respons
     } else {
       text = new TextDecoder().decode(raw);
     }
-    requests.push({ headers, body: raw, events: JSON.parse(text).events as TollwayEvent[] });
+    requests.push({ headers, body: raw, events: JSON.parse(text).events as OctroiEvent[] });
     return respond(attempt);
   }) as typeof fetch;
   return { fetch: impl, requests };

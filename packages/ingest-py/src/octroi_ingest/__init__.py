@@ -1,6 +1,6 @@
-"""tollway-ingest — the cloud event client, Python side (§7 delivery).
+"""octroi-ingest — the cloud event client, Python side (§7 delivery).
 
-Mirrors ``@tollway/ingest``'s semantics exactly:
+Mirrors ``@octroi/ingest``'s semantics exactly:
 
 - HTTPS, gzip over 1 KiB, at-least-once, flush at 5s or 100 events
 - 10k-event retry buffer, drop-oldest on overflow — with the overflow report
@@ -12,15 +12,15 @@ Mirrors ``@tollway/ingest``'s semantics exactly:
 - ``sink`` never blocks and never raises: it appends under a lock and returns.
   Every network cost lives on the worker thread.
 
-BSL-licensed, deliberately separate from the MIT ``tollway`` package — the SDK
+BSL-licensed, deliberately separate from the MIT ``octroi`` package — the SDK
 works with no cloud and no BSL code installed (spec §1.1).
 
 Usage::
 
-    from tollway_ingest import IngestClient
+    from octroi_ingest import IngestClient
 
-    client = IngestClient(api_key=os.environ["TW_KEY"])
-    tw = Tollway(..., sinks=[client.sink])
+    client = IngestClient(api_key=os.environ["OCT_KEY"])
+    tw = Octroi(..., sinks=[client.sink])
 """
 
 from __future__ import annotations
@@ -37,9 +37,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 __all__ = ["IngestClient", "DEFAULT_INGEST_URL"]
 
-DEFAULT_INGEST_URL = "https://ingest.tollway.sh"
+DEFAULT_INGEST_URL = "https://ingest.octroi.ai"
 
-_log = logging.getLogger("tollway")
+_log = logging.getLogger("octroi")
 
 #: transport(url, headers, body) -> (status, response_text). Injectable so the
 #: test suite never touches a socket.
@@ -78,7 +78,7 @@ class IngestClient:
         start_thread: bool = True,
     ) -> None:
         if not api_key:
-            raise ValueError("tollway-ingest: api_key is required")
+            raise ValueError("octroi-ingest: api_key is required")
 
         self._url = url.rstrip("/") + "/v1/events"
         self._api_key = api_key
@@ -110,7 +110,7 @@ class IngestClient:
         self._thread: Optional[threading.Thread] = None
         if start_thread:
             self._thread = threading.Thread(
-                target=self._run, name="tollway-ingest", daemon=True
+                target=self._run, name="octroi-ingest", daemon=True
             )
             self._thread.start()
 
@@ -150,7 +150,7 @@ class IngestClient:
             except _PermanentRejection as error:
                 self.stats["abandoned"] += len(wire)
                 self.stats["consecutive_failures"] = 0
-                _log.error("tollway: ingest rejected a batch permanently, discarding it: %s", error)
+                _log.error("octroi: ingest rejected a batch permanently, discarding it: %s", error)
                 continue
             except Exception as error:  # noqa: BLE001 — transient: retry later
                 with self._lock:
@@ -167,7 +167,7 @@ class IngestClient:
                     if failures >= self._max_attempts:
                         self.stats["abandoned"] += len(self._buffer)
                         _log.error(
-                            "tollway: ingest unreachable after %d attempts, giving up on %d events",
+                            "octroi: ingest unreachable after %d attempts, giving up on %d events",
                             failures,
                             len(self._buffer),
                         )
@@ -179,7 +179,7 @@ class IngestClient:
                     exponent = min(failures, 6)
                     delay = self._retry_base_s * (2 ** (exponent - 1)) * (0.5 + self._jitter())
                     self._next_retry_at = self._clock() + delay
-                _log.warning("tollway: ingest flush failed (attempt %d): %s", failures, error)
+                _log.warning("octroi: ingest flush failed (attempt %d): %s", failures, error)
                 return
 
             self.stats["sent"] += len(wire)
@@ -230,13 +230,13 @@ class IngestClient:
         self._pending_overflow = {"dropped": self.stats["dropped"], "at": int(self._clock() * 1000)}
         if first:
             _log.warning(
-                "tollway: ingest buffer overflowed, dropping oldest events (dropped=%d)",
+                "octroi: ingest buffer overflowed, dropping oldest events (dropped=%d)",
                 self.stats["dropped"],
             )
 
     def _overflow_event(self, report: Dict[str, Any]) -> Dict[str, Any]:
         return {
-            "id": f"twy_evt_overflow_{report['at']:x}_{report['dropped']}",
+            "id": f"oct_evt_overflow_{report['at']:x}_{report['dropped']}",
             "v": 1,
             "type": "gate.error",
             "ts": report["at"],

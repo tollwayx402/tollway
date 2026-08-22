@@ -20,9 +20,9 @@ import {
   type FacilitatorAdapter,
   type GateOptions,
   type Receipt,
-  type TollwayEvent,
-} from "@tollway/core";
-import { fetchSupportedNetworks, measureClockSkew, SKEW_CRITICAL_MS } from "@tollway/coinbase";
+  type OctroiEvent,
+} from "@octroi/core";
+import { fetchSupportedNetworks, measureClockSkew, SKEW_CRITICAL_MS } from "@octroi/coinbase";
 
 export interface DoctorOptions {
   gate: GateOptions;
@@ -183,7 +183,7 @@ export async function doctor(options: DoctorOptions): Promise<DoctorReport> {
       ok: true,
       skipped: true,
       detail:
-        "no TW_AGENT_KEY — set one (a testnet wallet with USDC) to check the whole path end to end",
+        "no OCT_AGENT_KEY — set one (a testnet wallet with USDC) to check the whole path end to end",
     });
   } else {
     await run("self-payment settles end to end", () => selfPayment(options, add));
@@ -216,11 +216,11 @@ async function selfPayment(
     chains = await import("viem/chains");
   } catch {
     throw new Error(
-      "the self-payment needs `viem` and `x402-fetch` installed alongside @tollway/gate",
+      "the self-payment needs `viem` and `x402-fetch` installed alongside @octroi/gate",
     );
   }
 
-  const events: TollwayEvent[] = [];
+  const events: OctroiEvent[] = [];
   const gate = createGate({ ...options.gate, onEvent: (event) => void events.push(event) });
 
   const server = createServer((req, res) => {

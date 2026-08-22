@@ -19,10 +19,10 @@ import logging
 import time
 from typing import Any, Callable, Dict, List, Optional
 
-__all__ = ["EventBus", "EventSink", "TollwayEvent", "EVENT_TYPES"]
+__all__ = ["EventBus", "EventSink", "OctroiEvent", "EVENT_TYPES"]
 
-TollwayEvent = Dict[str, Any]
-EventSink = Callable[[TollwayEvent], Any]
+OctroiEvent = Dict[str, Any]
+EventSink = Callable[[OctroiEvent], Any]
 
 EVENT_TYPES = (
     "challenge.issued",
@@ -33,7 +33,7 @@ EVENT_TYPES = (
     "gate.error",
 )
 
-_log = logging.getLogger("tollway")
+_log = logging.getLogger("octroi")
 
 
 class EventBus:
@@ -50,14 +50,14 @@ class EventBus:
         self._clock = clock or (lambda: time.time() * 1000)
         self._new_id = new_id or (lambda: f"evt_{int(time.time() * 1000):x}")
         self._log = logger or _log
-        self._queue: List[TollwayEvent] = []
+        self._queue: List[OctroiEvent] = []
         self._pump: Optional[asyncio.Task] = None
 
     def add_sink(self, sink: EventSink) -> None:
         self._sinks.append(sink)
 
-    def emit(self, type_: str, route: str, data: Dict[str, Any]) -> TollwayEvent:
-        event: TollwayEvent = {
+    def emit(self, type_: str, route: str, data: Dict[str, Any]) -> OctroiEvent:
+        event: OctroiEvent = {
             "id": self._new_id(),
             "v": 1,
             "type": type_,
@@ -102,7 +102,7 @@ class EventBus:
                         await result
                 except Exception as error:  # noqa: BLE001 — a sink must not break the queue
                     self._log.warning(
-                        "tollway: event sink raised (event %s, %s): %s",
+                        "octroi: event sink raised (event %s, %s): %s",
                         event["id"],
                         event["type"],
                         error,

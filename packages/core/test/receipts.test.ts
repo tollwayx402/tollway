@@ -11,7 +11,7 @@ import type { UnsignedReceipt } from "../src/index.js";
 import { FIXED_SIGNING_JWK } from "./fixtures/keys.js";
 
 const unsigned: UnsignedReceipt = {
-  id: "twy_rcpt_8f3a2c",
+  id: "oct_rcpt_8f3a2c",
   v: 1,
   route: "/v1/report",
   amount: "4000",

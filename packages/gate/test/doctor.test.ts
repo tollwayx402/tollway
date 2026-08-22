@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createMockFacilitator } from "@tollway/core/testing";
-import type { GateOptions } from "@tollway/core";
+import { createMockFacilitator } from "@octroi/core/testing";
+import type { GateOptions } from "@octroi/core";
 import { doctor, formatReport } from "../src/doctor.js";
 
 function gateOptions(overrides: Partial<GateOptions> = {}): GateOptions {
@@ -10,7 +10,7 @@ function gateOptions(overrides: Partial<GateOptions> = {}): GateOptions {
     network: "base-sepolia",
     payTo: `0x${"1".repeat(40)}`,
     facilitator: createMockFacilitator({ networks: ["base-sepolia"] }),
-    resourceBase: "https://doctor.tollway.local",
+    resourceBase: "https://doctor.octroi.local",
     ...overrides,
   };
 }
@@ -59,7 +59,7 @@ describe("doctor", () => {
     expect(report.incomplete).toBe(true);
     const selfPayment = report.checks.find((c) => c.name === "self-payment");
     expect(selfPayment?.skipped).toBe(true);
-    expect(selfPayment?.detail).toMatch(/TW_AGENT_KEY/);
+    expect(selfPayment?.detail).toMatch(/OCT_AGENT_KEY/);
     expect(formatReport(report)).toContain("This is not a clean bill.");
   });
 
@@ -94,7 +94,7 @@ describe("doctor", () => {
 
   it("resolves a string facilitator and still runs its conformance suite", async () => {
     // A by-id facilitator must not silently vanish from the run.
-    const { registerFacilitator } = await import("@tollway/core");
+    const { registerFacilitator } = await import("@octroi/core");
     registerFacilitator(createMockFacilitator({ id: "doctor-registered", networks: ["base-sepolia"] }));
 
     const report = await doctor({

@@ -8,7 +8,7 @@ refused outright.
 
 The one documented divergence: JavaScript sorts keys by UTF-16 code unit,
 Python by Unicode code point. These agree for every character below U+10000,
-and differ only for astral-plane keys (emoji, rare CJK). Tollway never emits
+and differ only for astral-plane keys (emoji, rare CJK). Octroi never emits
 such keys; if you add one, the golden files will catch it.
 """
 

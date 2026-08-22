@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import pytest
 
-from tollway import (
+from octroi import (
     GateRequest,
     MemoryRateLimitStore,
-    TollwayConfigError,
+    OctroiConfigError,
     VerifyResult,
     create_gate,
     payer_hint,
 )
-from tollway.testing import create_mock_facilitator, encode_payment_header, mock_payment
+from octroi.testing import create_mock_facilitator, encode_payment_header, mock_payment
 
 NOW = 1_765_432_100_000
 
@@ -184,7 +184,7 @@ def test_payer_hint_shapes():
 
 
 def test_rejects_nonsensical_rates():
-    with pytest.raises(TollwayConfigError, match="positive number"):
+    with pytest.raises(OctroiConfigError, match="positive number"):
         build(rate_limit={"challenges_per_minute_per_ip": 0})
-    with pytest.raises(TollwayConfigError, match="positive number"):
+    with pytest.raises(OctroiConfigError, match="positive number"):
         build(rate_limit={"attempts_per_minute_per_payer": -5})

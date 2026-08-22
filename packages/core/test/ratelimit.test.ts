@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryRateLimitStore, createGate, payerHint } from "../src/index.js";
-import type { GateHalt, GateOptions, GateRequest, GateResult, TollwayEvent } from "../src/index.js";
+import type { GateHalt, GateOptions, GateRequest, GateResult, OctroiEvent } from "../src/index.js";
 import {
   counterIds,
   createMockFacilitator,
@@ -16,7 +16,7 @@ function asHalt(result: GateResult): GateHalt {
 }
 
 let now: number;
-let events: TollwayEvent[];
+let events: OctroiEvent[];
 
 function gate(overrides: Partial<GateOptions> = {}) {
   const ids = counterIds();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatConformance, runFacilitatorConformance } from "@tollway/core";
+import { formatConformance, runFacilitatorConformance } from "@octroi/core";
 import { coinbaseFacilitator } from "../src/index.js";
 import { measureClockSkew } from "../src/skew.js";
 import { routedFetch } from "./replay.js";

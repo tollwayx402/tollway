@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from tollway import (
+from octroi import (
     CanonicalJsonError,
     MemoryNonceStore,
-    TollwayConfigError,
+    OctroiConfigError,
     canonical_bytes,
     canonical_json,
     create_ephemeral_signer,
@@ -19,7 +19,7 @@ from tollway import (
     sign_receipt,
     verify_receipt,
 )
-from tollway.testing import encode_payment_header, mock_payment
+from octroi.testing import encode_payment_header, mock_payment
 
 FIXED_JWK = {
     "kty": "OKP",
@@ -85,20 +85,20 @@ class TestPrice:
         assert parse_price("$29.97", "usdc") == 29_970_000
 
     def test_rejects_more_precision_than_the_asset_carries(self):
-        with pytest.raises(TollwayConfigError, match="7 decimal places but usdc carries 6"):
+        with pytest.raises(OctroiConfigError, match="7 decimal places but usdc carries 6"):
             parse_price("$0.0000004", "usdc")
 
     def test_rejects_unparseable_and_non_positive(self):
         for bad in ["free", "0.004 USDC", "-$1", "$0"]:
-            with pytest.raises(TollwayConfigError):
+            with pytest.raises(OctroiConfigError):
                 parse_price(bad, "usdc")
-        with pytest.raises(TollwayConfigError):
+        with pytest.raises(OctroiConfigError):
             parse_price(0, "usdc")
-        with pytest.raises(TollwayConfigError, match="bool"):
+        with pytest.raises(OctroiConfigError, match="bool"):
             parse_price(True, "usdc")
 
     def test_requires_decimals_for_unknown_assets(self):
-        with pytest.raises(TollwayConfigError, match="unknown asset"):
+        with pytest.raises(OctroiConfigError, match="unknown asset"):
             parse_price("$1", "wrappedwidget")
         assert parse_price("$1", "wrappedwidget", decimals=18) == 10**18
 
@@ -158,7 +158,7 @@ class TestNonceStore:
 class TestReceipts:
     def _unsigned(self):
         return {
-            "id": "twy_rcpt_8f3a2c",
+            "id": "oct_rcpt_8f3a2c",
             "v": 1,
             "route": "/v1/report",
             "amount": "4000",
@@ -224,7 +224,7 @@ class TestPaymentDecoding:
             canonical_json({"a": 1, 2: "mixed"})
 
     def test_rejects_malformed_headers(self):
-        from tollway import PaymentDecodeError
+        from octroi import PaymentDecodeError
 
         for bad in ["", "not-base64!", encode_payment_header({"scheme": "exact"})]:
             with pytest.raises(PaymentDecodeError):

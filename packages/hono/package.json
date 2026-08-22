@@ -1,7 +1,7 @@
 {
-  "name": "@tollway/hono",
+  "name": "@octroi/hono",
   "version": "0.1.0",
-  "description": "Hono middleware for Tollway. Runs on Cloudflare Workers, Deno, Bun and Node.",
+  "description": "Hono middleware for Octroi. Runs on Cloudflare Workers, Deno, Bun and Node.",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -29,21 +29,21 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@tollway/core": "workspace:*"
+    "@octroi/core": "workspace:*"
   },
   "peerDependencies": {
     "hono": ">=4.0.0",
-    "@tollway/ingest": "workspace:*"
+    "@octroi/ingest": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
     "hono": "^4.13.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "@tollway/ingest": "workspace:*"
+    "@octroi/ingest": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "@tollway/ingest": {
+    "@octroi/ingest": {
       "optional": true
     }
   },
@@ -52,9 +52,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "url": "git+https://github.com/octroihq/octroi.git",
     "directory": "packages/hono"
   },
-  "homepage": "https://github.com/tollwayx402/tollway#readme",
-  "bugs": "https://github.com/tollwayx402/tollway/issues"
+  "homepage": "https://github.com/octroihq/octroi#readme",
+  "bugs": "https://github.com/octroihq/octroi/issues"
 }

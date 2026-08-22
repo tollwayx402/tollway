@@ -12,10 +12,10 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { tollway } from "@tollway/express";
-import { createIngestClient } from "@tollway/ingest";
-import type { TollwayEvent } from "@tollway/core";
-import { createMockFacilitator, encodePaymentHeader, mockPayment } from "@tollway/core/testing";
+import { octroi } from "@octroi/express";
+import { createIngestClient } from "@octroi/ingest";
+import type { OctroiEvent } from "@octroi/core";
+import { createMockFacilitator, encodePaymentHeader, mockPayment } from "@octroi/core/testing";
 import { createServer, type MerchantAccount } from "../src/server.js";
 import { EventStore } from "../src/store.js";
 
@@ -27,7 +27,7 @@ let merchantUrl: string;
 let ingest: ReturnType<typeof createIngestClient>;
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), "tollway-roundtrip-"));
+  dir = mkdtempSync(join(tmpdir(), "octroi-roundtrip-"));
 
   const keys = new Map<string, MerchantAccount>([["sk_test", { merchant: "acct_9d2" }]]);
   const app = createServer({ store: new EventStore(dir), keys });
@@ -47,7 +47,7 @@ beforeEach(async () => {
   const merchant = express();
   merchant.use(
     "/v1/report",
-    tollway({
+    octroi({
       price: "$0.004",
       network: "base-sepolia",
       payTo: "0xmerchant",
@@ -159,7 +159,7 @@ describe("gate → ingest client → cloud → dashboard", () => {
     const logged = readFileSync(join(dir, "acct_9d2.events.jsonl"), "utf8")
       .split("\n")
       .filter((line) => line.trim().length > 0)
-      .map((line) => JSON.parse(line) as TollwayEvent);
+      .map((line) => JSON.parse(line) as OctroiEvent);
     expect(logged.length).toBeGreaterThan(0);
 
     const resent = createIngestClient({ apiKey: "sk_test", url: cloudUrl, flushIntervalMs: 60_000 });

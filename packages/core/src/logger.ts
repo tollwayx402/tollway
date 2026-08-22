@@ -9,7 +9,7 @@ export const silentLogger: Logger = {
 };
 
 /** Convenience logger for examples and `doctor`. Not used unless opted into. */
-export function consoleLogger(prefix = "tollway"): Logger {
+export function consoleLogger(prefix = "octroi"): Logger {
   const write =
     (level: "debug" | "info" | "warn" | "error") =>
     (message: string, fields?: Record<string, unknown>) => {

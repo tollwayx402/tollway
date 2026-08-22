@@ -11,9 +11,9 @@ import {
   publicKeyHex,
   type Receipt,
   type Signer,
-  type TollwayEvent,
-} from "@tollway/core";
-import { validateSignedConfig } from "@tollway/ingest";
+  type OctroiEvent,
+} from "@octroi/core";
+import { validateSignedConfig } from "@octroi/ingest";
 import { createServer, type MerchantAccount } from "../src/server.js";
 import { EventStore } from "../src/store.js";
 
@@ -28,7 +28,7 @@ const KEYS = new Map<string, MerchantAccount>();
 
 async function receipt(overrides: Partial<Receipt> = {}): Promise<Receipt> {
   const body = {
-    id: overrides.id ?? "twy_rcpt_0001",
+    id: overrides.id ?? "oct_rcpt_0001",
     v: 1 as const,
     route: overrides.route ?? "/v1/report",
     amount: overrides.amount ?? "4000",
@@ -42,7 +42,7 @@ async function receipt(overrides: Partial<Receipt> = {}): Promise<Receipt> {
   return signDocument(body, receiptSigner);
 }
 
-function event(id: string, type: TollwayEvent["type"], data: Record<string, unknown> = {}): TollwayEvent {
+function event(id: string, type: OctroiEvent["type"], data: Record<string, unknown> = {}): OctroiEvent {
   return { id, v: 1, type, ts: NOW, route: "/v1/report", merchant: "acct_9d2", data };
 }
 
@@ -58,7 +58,7 @@ const get = (path: string, key = "key-a") =>
   fetch(`${url}${path}`, { headers: { authorization: `Bearer ${key}` } });
 
 beforeEach(async () => {
-  dir = mkdtempSync(join(tmpdir(), "tollway-ingest-"));
+  dir = mkdtempSync(join(tmpdir(), "octroi-ingest-"));
   store = new EventStore(dir);
   receiptSigner = await createEphemeralSigner();
 
@@ -303,7 +303,7 @@ describe("POST /v1/refunds", () => {
     const signed = await receipt();
     await post("/v1/events", { events: [event("e1", "toll.settled", { receipt: signed })] });
 
-    expect((await post("/v1/refunds", { receipt_id: "twy_rcpt_nope" })).status).toBe(404);
+    expect((await post("/v1/refunds", { receipt_id: "oct_rcpt_nope" })).status).toBe(404);
     expect((await post("/v1/refunds", { receipt_id: signed.id })).status).toBe(201);
     expect((await post("/v1/refunds", { receipt_id: signed.id })).status).toBe(409);
   });
@@ -317,8 +317,8 @@ describe("POST /v1/refunds", () => {
 
 describe("dashboard projections (§8)", () => {
   it("derives revenue, rejects, payers and refund candidates from the stream alone", async () => {
-    const paid = await receipt({ id: "twy_rcpt_a", amount: "4000", payer: "0xpayer1" });
-    const failed = await receipt({ id: "twy_rcpt_b", amount: "20000", payer: "0xpayer2" });
+    const paid = await receipt({ id: "oct_rcpt_a", amount: "4000", payer: "0xpayer1" });
+    const failed = await receipt({ id: "oct_rcpt_b", amount: "20000", payer: "0xpayer2" });
 
     await post("/v1/events", {
       events: [
@@ -379,7 +379,7 @@ describe("the page itself", () => {
     expect(page.status).toBe(200);
     expect(page.headers.get("content-type")).toMatch(/text\/html/);
     const html = await page.text();
-    expect(html).toContain("Tollway");
+    expect(html).toContain("Octroi");
     // The page is a shell; every number arrives through the authenticated API.
     expect(html).not.toContain("acct_9d2");
   });

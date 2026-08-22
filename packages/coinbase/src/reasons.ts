@@ -1,7 +1,7 @@
-import type { RejectCode } from "@tollway/core";
+import type { RejectCode } from "@octroi/core";
 
 /**
- * x402 `invalidReason` / `errorReason` → Tollway `RejectCode`.
+ * x402 `invalidReason` / `errorReason` → Octroi `RejectCode`.
  *
  * The enum is taken from `x402@1.2.0`'s `ErrorReasons`. Unknown reasons fall
  * back to `invalid_payment` rather than throwing: a facilitator adding a reason

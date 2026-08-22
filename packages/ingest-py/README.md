@@ -1,19 +1,19 @@
-# tollway-ingest
+# octroi-ingest
 
-The Tollway cloud event client for Python. BSL 1.1, deliberately separate from
-the MIT `tollway` package — the SDK works with no cloud and no BSL code
+The Octroi cloud event client for Python. BSL 1.1, deliberately separate from
+the MIT `octroi` package — the SDK works with no cloud and no BSL code
 installed (spec §1.1).
 
 ```bash
-pip install tollway-ingest
+pip install octroi-ingest
 ```
 
 ```python
-from tollway_ingest import IngestClient
-from tollway.fastapi import Tollway
+from octroi_ingest import IngestClient
+from octroi.fastapi import Octroi
 
-client = IngestClient(api_key=os.environ["TW_KEY"])
-tw = Tollway(..., sinks=[client.sink])
+client = IngestClient(api_key=os.environ["OCT_KEY"])
+tw = Octroi(..., sinks=[client.sink])
 ```
 
 Zero runtime dependencies: stdlib threading, gzip and urllib.

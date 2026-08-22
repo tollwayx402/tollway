@@ -1,6 +1,6 @@
 """A Python facilitator adapter for the x402 facilitator HTTP contract.
 
-The same POST /verify + POST /settle protocol the TypeScript @tollway/coinbase
+The same POST /verify + POST /settle protocol the TypeScript @octroi/coinbase
 adapter speaks, with the same rules: rejections are return values, outages are
 exceptions, and a verify-stage "unexpected error" is a REJECTION — the payload
 is attacker-controlled input, and under fail_open an outage would be free
@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 from typing import Any, Dict
 
-from tollway import FacilitatorAdapter, FacilitatorUnreachableError, VerifyResult
+from octroi import FacilitatorAdapter, FacilitatorUnreachableError, VerifyResult
 
 DEFAULT_FACILITATOR_URL = "https://x402.org/facilitator"
 

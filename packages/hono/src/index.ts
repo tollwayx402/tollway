@@ -1,8 +1,8 @@
 /**
- * `@tollway/hono` — Hono binding for the protocol core.
+ * `@octroi/hono` — Hono binding for the protocol core.
  *
  * Edge-first: no `node:` imports anywhere in this package or in
- * `@tollway/core`, so the same build runs on Cloudflare Workers, Deno, Bun and
+ * `@octroi/core`, so the same build runs on Cloudflare Workers, Deno, Bun and
  * Node. A test enforces that (see `test/portability.test.ts`) — it is easy to
  * break by accident and impossible to notice until a deploy fails.
  *
@@ -10,14 +10,14 @@
  * returns once the handler is done, so the outcome is reported at a plain
  * `await` rather than through response events.
  */
-import { createGate, type EventSink, type Gate, type GateOptions, type GateRequest } from "@tollway/core";
+import { createGate, type EventSink, type Gate, type GateOptions, type GateRequest } from "@octroi/core";
 import type { Context, MiddlewareHandler } from "hono";
 
-export interface TollwayHonoOptions extends Omit<GateOptions, "route"> {
+export interface OctroiHonoOptions extends Omit<GateOptions, "route"> {
   /** Route label for events and receipts. Defaults to Hono's matched pattern. */
   route?: string | ((c: Context) => string);
   /**
-   * Cloud API key (§3.1). `@tollway/ingest` is an optional peer, loaded
+   * Cloud API key (§3.1). `@octroi/ingest` is an optional peer, loaded
    * lazily — it is BSL and this package is MIT, so it is never a hard
    * dependency. Not installed means events stay local, loudly.
    */
@@ -25,13 +25,13 @@ export interface TollwayHonoOptions extends Omit<GateOptions, "route"> {
   ingestUrl?: string;
 }
 
-export interface TollwayMiddleware {
+export interface OctroiMiddleware {
   (c: Context, next: () => Promise<void>): Promise<Response | void>;
   /** The underlying gate, for event sinks, `publicKey()`, or `doctor`. */
   gate: Gate;
 }
 
-export function tollway(options: TollwayHonoOptions): TollwayMiddleware {
+export function octroi(options: OctroiHonoOptions): OctroiMiddleware {
   const { route, apiKey, ingestUrl, ...gateOptions } = options;
   const gate = createGate(gateOptions);
 
@@ -61,10 +61,10 @@ export function tollway(options: TollwayHonoOptions): TollwayMiddleware {
     return undefined;
   };
 
-  return Object.assign(handler, { gate }) as TollwayMiddleware;
+  return Object.assign(handler, { gate }) as OctroiMiddleware;
 }
 
-function toGateRequest(c: Context, route: TollwayHonoOptions["route"]): GateRequest {
+function toGateRequest(c: Context, route: OctroiHonoOptions["route"]): GateRequest {
   const url = c.req.url;
   return {
     method: c.req.method,
@@ -81,7 +81,7 @@ function toGateRequest(c: Context, route: TollwayHonoOptions["route"]): GateRequ
 }
 
 /** Stable label for events and receipts: the matched pattern, not the query. */
-function resolveRoute(c: Context, override: TollwayHonoOptions["route"]): string {
+function resolveRoute(c: Context, override: OctroiHonoOptions["route"]): string {
   if (typeof override === "function") return override(c);
   if (override !== undefined) return override;
   // `routePath` is the registered pattern ("/v1/:kind"), so one label per
@@ -102,7 +102,7 @@ function attachCloudSink(
   gate: Gate,
   apiKey: string,
   url: string | undefined,
-  logger: TollwayHonoOptions["logger"],
+  logger: OctroiHonoOptions["logger"],
 ): void {
   const pending: Parameters<EventSink>[0][] = [];
   let live: EventSink | undefined;
@@ -114,7 +114,7 @@ function attachCloudSink(
 
   void (async () => {
     try {
-      const { createIngestClient } = await import("@tollway/ingest");
+      const { createIngestClient } = await import("@octroi/ingest");
       const client = createIngestClient({
         apiKey,
         ...(url === undefined ? {} : { url }),
@@ -124,7 +124,7 @@ function attachCloudSink(
       for (const event of pending.splice(0)) client.sink(event);
     } catch (error) {
       (logger ?? console).error?.(
-        "tollway: `apiKey` was set but @tollway/ingest could not be loaded — events stay local. " +
+        "octroi: `apiKey` was set but @octroi/ingest could not be loaded — events stay local. " +
           `(${error instanceof Error ? error.message : String(error)})`,
       );
       pending.length = 0;

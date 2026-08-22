@@ -2,21 +2,21 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
 import { afterEach, describe, expect, it } from "vitest";
-import { RECEIPT_HEADER, verifyReceipt } from "@tollway/core";
-import type { TollwayEvent } from "@tollway/core";
+import { RECEIPT_HEADER, verifyReceipt } from "@octroi/core";
+import type { OctroiEvent } from "@octroi/core";
 import {
   createMockFacilitator,
   encodePaymentHeader,
   mockPayment,
   type MockFacilitator,
-} from "@tollway/core/testing";
-import { tollway, type TollwayExpressOptions } from "../src/index.js";
+} from "@octroi/core/testing";
+import { octroi, type OctroiExpressOptions } from "../src/index.js";
 
 interface Harness {
   url: string;
-  events: TollwayEvent[];
+  events: OctroiEvent[];
   facilitator: MockFacilitator;
-  gate: ReturnType<typeof tollway>["gate"];
+  gate: ReturnType<typeof octroi>["gate"];
   flush(): Promise<void>;
 }
 
@@ -33,8 +33,8 @@ afterEach(async () => {
 });
 
 async function harness(
-  options: Partial<TollwayExpressOptions> = {},
-  mount: (app: express.Express, middleware: ReturnType<typeof tollway>) => void = (
+  options: Partial<OctroiExpressOptions> = {},
+  mount: (app: express.Express, middleware: ReturnType<typeof octroi>) => void = (
     app,
     middleware,
   ) => {
@@ -44,10 +44,10 @@ async function harness(
     });
   },
 ): Promise<Harness> {
-  const events: TollwayEvent[] = [];
+  const events: OctroiEvent[] = [];
   const facilitator = createMockFacilitator({ networks: ["base-sepolia"] });
 
-  const middleware = tollway({
+  const middleware = octroi({
     price: "$0.004",
     asset: "usdc",
     network: "base-sepolia",
@@ -111,7 +111,7 @@ describe("paid requests", () => {
     await expect(response.json()).resolves.toEqual({ report: "paid content" });
 
     const receiptId = response.headers.get(RECEIPT_HEADER);
-    expect(receiptId).toMatch(/^twy_rcpt_/);
+    expect(receiptId).toMatch(/^oct_rcpt_/);
 
     expect(h.events.map((e) => e.type)).toEqual(["toll.settled", "request.served"]);
     const served = h.events[1];
@@ -166,7 +166,7 @@ describe("outcome reporting", () => {
     expect(response.status).toBe(500);
     expect(h.events.map((e) => e.type)).toEqual(["toll.settled", "request.failed"]);
     expect(h.events[1]?.data).toMatchObject({ status: 500 });
-    expect(h.events[1]?.data["receipt_id"]).toMatch(/^twy_rcpt_/);
+    expect(h.events[1]?.data["receipt_id"]).toMatch(/^oct_rcpt_/);
   });
 
   it("reports exactly once per request", async () => {

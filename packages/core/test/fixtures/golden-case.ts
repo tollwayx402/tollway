@@ -2,7 +2,7 @@
  * The §11 cross-language golden case.
  *
  * Every input is fixed — clock, nonce, ids, signing key, facilitator — so the
- * output is a pure function of the protocol logic. `tollway` (Python) must
+ * output is a pure function of the protocol logic. `octroi` (Python) must
  * reproduce these bytes exactly; see golden/README.md.
  */
 import { createGate, createSignerFromJwk, canonicalJson } from "../../src/index.js";
@@ -47,8 +47,8 @@ function goldenGate() {
     newNonce: () => GOLDEN_NONCE,
     newId: (prefix) =>
       prefix === "rcpt"
-        ? `twy_rcpt_${(++receiptCount).toString().padStart(6, "0")}`
-        : `twy_evt_${(++eventCount).toString().padStart(6, "0")}`,
+        ? `oct_rcpt_${(++receiptCount).toString().padStart(6, "0")}`
+        : `oct_evt_${(++eventCount).toString().padStart(6, "0")}`,
     signer: createSignerFromJwk(FIXED_SIGNING_JWK),
   });
 }

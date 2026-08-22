@@ -1,19 +1,19 @@
-# `@tollway/hono`
+# `@octroi/hono`
 
-Hono middleware for Tollway. Runs on Cloudflare Workers, Deno, Bun and Node
+Hono middleware for Octroi. Runs on Cloudflare Workers, Deno, Bun and Node
 from the same build.
 
 ```ts
 import { Hono } from "hono";
-import { tollway } from "@tollway/hono";
-import { coinbaseFacilitator } from "@tollway/coinbase";
+import { octroi } from "@octroi/hono";
+import { coinbaseFacilitator } from "@octroi/coinbase";
 
 const app = new Hono();
 
-app.use("/v1/report", tollway({
+app.use("/v1/report", octroi({
   price: "$0.004",
   network: "base",
-  payTo: c.env.TW_ADDRESS,
+  payTo: c.env.OCT_ADDRESS,
   facilitator: coinbaseFacilitator(),
 }));
 
@@ -32,7 +32,7 @@ than one per parameter value.
 
 ## Workers
 
-`@tollway/core` and this package import **no** Node builtins and use no
+`@octroi/core` and this package import **no** Node builtins and use no
 Node-only globals: crypto is WebCrypto, encoding is `TextEncoder`/`btoa`,
 transport is `fetch`. A test (`test/portability.test.ts`) enforces that over
 the source, because a stray `import { randomBytes } from "node:crypto"`

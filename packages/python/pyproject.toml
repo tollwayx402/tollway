@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tollway"
+name = "octroi"
 version = "0.1.0"
 description = "Toll gates for HTTP routes: return a 402, verify the payment, serve the 200."
 readme = "README.md"
@@ -18,13 +18,13 @@ fastapi = ["fastapi>=0.100", "httpx>=0.24"]
 dev = ["pytest>=7", "pytest-asyncio>=0.21", "fastapi>=0.100", "httpx>=0.24"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/tollway"]
+packages = ["src/octroi"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
 [project.urls]
-Homepage = "https://github.com/tollwayx402/tollway"
-Repository = "https://github.com/tollwayx402/tollway"
-Issues = "https://github.com/tollwayx402/tollway/issues"
+Homepage = "https://github.com/octroihq/octroi"
+Repository = "https://github.com/octroihq/octroi"
+Issues = "https://github.com/octroihq/octroi/issues"

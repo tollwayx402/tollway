@@ -1,38 +1,38 @@
-# tollway
+# octroi
 
 Toll gates for HTTP routes: return a 402, verify the payment, serve the 200.
 
-The Python port of [`@tollway/core`](../core). Same protocol, same wire format —
+The Python port of [`@octroi/core`](../core). Same protocol, same wire format —
 byte for byte. The golden files in `golden/` are the contract, and
 `tests/test_golden.py` holds this package to them.
 
 ```bash
-pip install tollway[fastapi]
+pip install octroi[fastapi]
 ```
 
 ## FastAPI
 
 ```python
 from fastapi import FastAPI
-from tollway.fastapi import Tollway
+from octroi.fastapi import Octroi
 
 app = FastAPI()
-tw = Tollway(pay_to=os.environ["TW_ADDRESS"], network="base", facilitator=coinbase)
-Tollway.install(app)          # renders halts, reports outcomes
+tw = Octroi(pay_to=os.environ["OCT_ADDRESS"], network="base", facilitator=coinbase)
+Octroi.install(app)          # renders halts, reports outcomes
 
 @app.get("/v1/report", dependencies=[tw.gate(price="$0.004", asset="usdc")])
 async def report():
     return {"report": "the paid content"}
 ```
 
-`Tollway.install(app)` is **required**, not decoration. Without it a paid
+`Octroi.install(app)` is **required**, not decoration. Without it a paid
 request is served but never reported, so `request.served` / `request.failed` —
 and therefore refund candidates — silently never happen.
 
 ## Without a framework
 
 ```python
-from tollway import GateRequest, create_gate
+from octroi import GateRequest, create_gate
 
 gate = create_gate(
     price="$0.004",
@@ -68,7 +68,7 @@ The two implementations are deliberately the same shape, so `gate.py` reads as
 
 One documented divergence in `canonical.py`: JavaScript sorts object keys by
 UTF-16 code unit, Python by Unicode code point. These agree below U+10000 and
-differ only for astral-plane keys. Tollway never emits one — and the golden
+differ only for astral-plane keys. Octroi never emits one — and the golden
 files would catch it.
 
 ## Develop
