@@ -4,7 +4,11 @@
   "description": "Batteries-included Tollway: core + Express + the Coinbase facilitator, and the `doctor` CLI.",
   "license": "MIT",
   "type": "module",
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -36,8 +40,12 @@
     "@tollway/express": "workspace:*"
   },
   "peerDependenciesMeta": {
-    "viem": { "optional": true },
-    "x402-fetch": { "optional": true }
+    "viem": {
+      "optional": true
+    },
+    "x402-fetch": {
+      "optional": true
+    }
   },
   "peerDependencies": {
     "viem": ">=2.23",
@@ -49,5 +57,15 @@
     "viem": "2.55.13",
     "vitest": "^3.2.4",
     "x402-fetch": "1.2.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "directory": "packages/gate"
+  },
+  "homepage": "https://github.com/tollwayx402/tollway#readme",
+  "bugs": "https://github.com/tollwayx402/tollway/issues"
 }

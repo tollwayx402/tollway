@@ -6,7 +6,8 @@
   "type": "module",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -39,5 +40,15 @@
     "vitest": "^3.2.4",
     "x402": "1.2.0",
     "x402-fetch": "1.2.0"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "directory": "packages/coinbase"
+  },
+  "homepage": "https://github.com/tollwayx402/tollway#readme",
+  "bugs": "https://github.com/tollwayx402/tollway/issues"
 }

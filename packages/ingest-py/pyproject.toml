@@ -21,3 +21,8 @@ packages = ["src/tollway_ingest"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[project.urls]
+Homepage = "https://github.com/tollwayx402/tollway"
+Repository = "https://github.com/tollwayx402/tollway"
+Issues = "https://github.com/tollwayx402/tollway/issues"

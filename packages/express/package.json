@@ -6,7 +6,8 @@
   "type": "module",
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -46,5 +47,15 @@
     "@tollway/ingest": {
       "optional": true
     }
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tollwayx402/tollway.git",
+    "directory": "packages/express"
+  },
+  "homepage": "https://github.com/tollwayx402/tollway#readme",
+  "bugs": "https://github.com/tollwayx402/tollway/issues"
 }
