@@ -1,8 +1,8 @@
 {
   "_provenance": {
-    "status": "MIXED \u2014 one entry recorded live, the rest synthetic",
+    "status": "MIXED — one entry recorded live, the rest synthetic",
     "recorded": {
-      "verify.garbagePayload": "Recorded 2026-08-12 from https://x402.org/facilitator. A malformed payload returns HTTP 500 with invalidReason 'unexpected_error' \u2014 a string absent from x402@1.2.0's ErrorReasons enum, and with extra invalidMessage/error fields."
+      "verify.garbagePayload": "Recorded 2026-08-12 from https://x402.org/facilitator. A malformed payload returns HTTP 500 with invalidReason 'unexpected_error' — a string absent from x402@1.2.0's ErrorReasons enum, and with extra invalidMessage/error fields."
     },
     "syntheticWhy": "The remaining entries need CDP credentials and a funded Base Sepolia wallet to record; settle.ok in particular cannot be honestly fabricated.",
     "validated": "Response bodies are checked against x402@1.2.0's VerifyResponseSchema / SettleResponseSchema by test/adapter.test.ts. Entries marked `recorded: true` are exempt: reality outranks the schema, and this one provably violates it.",
@@ -147,6 +147,21 @@
         "invalidReason": "unexpected_error",
         "invalidMessage": "Cannot read properties of undefined (reading 'from')",
         "error": "Cannot read properties of undefined (reading 'from')"
+      }
+    }
+  },
+  "settle.relayerNonce": {
+    "path": "settle",
+    "recorded": true,
+    "_note": "Observed live from x402.org/facilitator on 2026-08-xx: a valid, already-verified payment failed at on-chain broadcast because the facilitator relayer had a stale nonce. errorReason is a raw viem string, not an enum value.",
+    "response": {
+      "status": 200,
+      "body": {
+        "success": false,
+        "errorReason": "nonce too low: next nonce 1677007, tx nonce 1676677",
+        "transaction": "0x",
+        "network": "base-sepolia",
+        "payer": "0x9f4c8a3b2d1e0f5a6b7c8d9e0f1a2b3c4d5e6f70"
       }
     }
   }

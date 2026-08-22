@@ -233,6 +233,25 @@ describe("outages are not rejections", () => {
     await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(/ENOTFOUND/);
   });
 
+  it("treats a settle-stage relayer/broadcast failure as unreachable, not invalid_payment", async () => {
+    // Observed live: a verified payment failed at on-chain broadcast because
+    // the facilitator relayer had a stale nonce. That is the facilitator's
+    // infrastructure, not a bad payment — reporting invalid_payment to the
+    // payer would be a lie. It must escalate so the merchant's mode decides.
+    const adapter = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.ok", "settle.relayerNonce"]).fetch,
+    });
+    await expect(adapter.verify(payment, context(adapter))).rejects.toThrow(/nonce too low/);
+  });
+
+  it("still reports a duplicate settlement as a payment-level replay, not a fault", async () => {
+    const adapter = coinbaseFacilitator({
+      fetchImpl: replayFetch(["verify.ok", "settle.duplicate"]).fetch,
+    });
+    const result = await adapter.verify(payment, context(adapter));
+    expect(result).toMatchObject({ ok: false, code: "replay" });
+  });
+
   it("treats settle-stage faults as unreachable — money may have moved", async () => {
     const settleFault = coinbaseFacilitator({
       fetchImpl: replayFetch(["verify.ok", "settle.fault"]).fetch,

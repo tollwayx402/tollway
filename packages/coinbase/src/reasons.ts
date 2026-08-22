@@ -59,25 +59,35 @@ const REASONS: Record<string, RejectCode> = {
  * under `fail_open` it would be a free-content bypass. A verdict-shaped
  * response is a verdict, whatever the reason string says.
  *
- * **Settle stage**: faults where money may have moved without a usable answer
- * (`unexpected_settle_error`, confirmation timeouts, state races). Calling the
- * payment "bad" there could be a lie; the merchant's mode must decide.
+ * **Settle stage**: the payment already verified, so a settlement failure is
+ * the facilitator FAILING TO BROADCAST a valid payment — a relayer nonce
+ * collision, gas, an RPC hiccup, a timeout, a state race. Reported to the
+ * payer as `invalid_payment` that would be a lie (observed live: the public
+ * facilitator returned a raw viem "nonce too low" error at settle). So the
+ * default at settle is INVERTED: treat the failure as the facilitator's
+ * unless the reason names a genuinely payment-level cause below.
  */
 const VERIFY_FAULTS = new Set(["invalid_payment_requirements"]);
 
-const SETTLE_FAULTS = new Set([
-  "unexpected_settle_error",
-  "invalid_transaction_state",
-  "settle_exact_svm_transaction_confirmation_timed_out",
-  "settle_exact_svm_block_height_exceeded",
+/** Settle-stage reasons that are the PAYMENT's fault, not infrastructure. */
+const SETTLE_PAYMENT_REASONS = new Set([
+  "duplicate_settlement",
+  "insufficient_funds",
+  "invalid_exact_evm_payload_authorization_value",
+  "invalid_exact_evm_payload_authorization_valid_before",
+  "invalid_exact_evm_payload_authorization_valid_after",
+  "invalid_exact_svm_payload_transaction_amount_mismatch",
 ]);
 
 export function isFacilitatorFault(
   reason: string | undefined,
   stage: "verify" | "settle",
 ): boolean {
-  if (reason === undefined) return false;
-  return stage === "verify" ? VERIFY_FAULTS.has(reason) : SETTLE_FAULTS.has(reason);
+  if (stage === "verify") return reason !== undefined && VERIFY_FAULTS.has(reason);
+  // Settle: default to fault (transient, mode applies) unless the reason is a
+  // known payment-level cause. A payment that verified is not the payer's
+  // fault if the facilitator then fails to get it on-chain.
+  return reason === undefined || !SETTLE_PAYMENT_REASONS.has(reason);
 }
 
 export function rejectCodeFor(reason: string | undefined): RejectCode {
