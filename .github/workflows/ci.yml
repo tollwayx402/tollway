@@ -19,8 +19,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm -r typecheck
       - run: pnpm -r build
+      - run: pnpm -r typecheck
       - run: pnpm -r test
       - name: golden files are unchanged
         # A protocol change must be a deliberate, reviewed diff — never an

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { MemoryRateLimitStore, createGate, payerHint } from "../src/index.js";
-import type { GateOptions, GateRequest, TollwayEvent } from "../src/index.js";
+import type { GateHalt, GateOptions, GateRequest, GateResult, TollwayEvent } from "../src/index.js";
 import {
   counterIds,
   createMockFacilitator,
@@ -9,6 +9,11 @@ import {
 } from "../src/testing.js";
 
 const NOW = 1_765_432_100_000;
+
+function asHalt(result: GateResult): GateHalt {
+  if (result.type === "pass") throw new Error("expected a halt, got a pass");
+  return result;
+}
 
 let now: number;
 let events: TollwayEvent[];
@@ -94,7 +99,7 @@ describe("per-IP challenge limits (§9)", () => {
   it("answers 429 above the threshold and recovers as the bucket refills", async () => {
     const g = gate();
     for (let i = 0; i < 3; i++) {
-      expect((await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
+      expect(asHalt(await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
     }
 
     const limited = await g.handle(unpaid("203.0.113.7"));
@@ -105,21 +110,21 @@ describe("per-IP challenge limits (§9)", () => {
     expect(limited.headers["retry-after"]).toBe("60");
 
     now += 20_000; // 3/min → one token per 20s
-    expect((await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
+    expect(asHalt(await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
   });
 
   it("limits per IP, not globally", async () => {
     const g = gate();
     for (let i = 0; i < 3; i++) await g.handle(unpaid("203.0.113.7"));
-    expect((await g.handle(unpaid("203.0.113.7"))).status).toBe(429);
+    expect(asHalt(await g.handle(unpaid("203.0.113.7"))).status).toBe(429);
     // A different client is unaffected.
-    expect((await g.handle(unpaid("198.51.100.9"))).status).toBe(402);
+    expect(asHalt(await g.handle(unpaid("198.51.100.9"))).status).toBe(402);
   });
 
   it("is inert without a client IP — a spoofable key punishes the innocent", async () => {
     const g = gate();
     for (let i = 0; i < 10; i++) {
-      expect((await g.handle(unpaid())).status).toBe(402);
+      expect(asHalt(await g.handle(unpaid())).status).toBe(402);
     }
   });
 
@@ -134,7 +139,7 @@ describe("per-IP challenge limits (§9)", () => {
   it("is off entirely when not configured", async () => {
     const g = gate({ rateLimit: undefined });
     for (let i = 0; i < 10; i++) {
-      expect((await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
+      expect(asHalt(await g.handle(unpaid("203.0.113.7"))).status).toBe(402);
     }
   });
 });
