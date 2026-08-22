@@ -3,8 +3,8 @@ Business Source License 1.1
 Parameters
 
 Licensor:             Daniel <hello@danield.dev>
-Licensed Work:        @tollway/service-ingest, the Tollway cloud ingest service and dashboard.
-Additional Use Grant: You may run the Licensed Work to ingest your own Tollway events, including self-hosting it for your own use. You may not offer the Licensed Work, or a derivative of it, as a hosted or managed service to third parties.
+Licensed Work:        @octroi/service-ingest, the Octroi cloud ingest service and dashboard.
+Additional Use Grant: You may run the Licensed Work to ingest your own Octroi events, including self-hosting it for your own use. You may not offer the Licensed Work, or a derivative of it, as a hosted or managed service to third parties.
 Change Date:          2030-08-12
 Change License:       MIT
 

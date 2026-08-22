@@ -3,8 +3,8 @@ Business Source License 1.1
 Parameters
 
 Licensor:             Daniel <hello@danield.dev>
-Licensed Work:        @tollway/ingest, the Tollway cloud event client (TypeScript).
-Additional Use Grant: You may use the Licensed Work in production to send your own telemetry to a Tollway-compatible ingest endpoint, including one you host yourself. You may not offer the Licensed Work, or a derivative of it, as a hosted or managed service to third parties.
+Licensed Work:        @octroi/ingest, the Octroi cloud event client (TypeScript).
+Additional Use Grant: You may use the Licensed Work in production to send your own telemetry to an Octroi-compatible ingest endpoint, including one you host yourself. You may not offer the Licensed Work, or a derivative of it, as a hosted or managed service to third parties.
 Change Date:          2030-08-12
 Change License:       MIT
 
