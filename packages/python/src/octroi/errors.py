@@ -13,7 +13,7 @@ __all__ = [
     "reject_message",
 ]
 
-DOC_BASE = "https://octroi.ai/docs/errors#"
+DOC_BASE = "https://octroi.sh/docs/errors#"
 
 _REJECT_MESSAGES = {
     "invalid_payment": "Payment payload was missing, malformed, or failed verification.",

@@ -11,7 +11,7 @@
  */
 import type { EventSink, Logger, OctroiEvent } from "@octroi/core";
 
-export const DEFAULT_INGEST_URL = "https://ingest.octroi.ai";
+export const DEFAULT_INGEST_URL = "https://ingest.octroi.sh";
 
 export interface IngestClientOptions {
   apiKey: string;

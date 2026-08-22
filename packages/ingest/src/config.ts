@@ -15,7 +15,7 @@
 import { canonicalJson, verifyDocument, type Logger } from "@octroi/core";
 import type { Mode, Price } from "@octroi/core";
 
-export const DEFAULT_CONFIG_URL = "https://ingest.octroi.ai";
+export const DEFAULT_CONFIG_URL = "https://ingest.octroi.sh";
 
 /** Per-route overrides the dashboard can push. */
 export interface RemoteRouteConfig {

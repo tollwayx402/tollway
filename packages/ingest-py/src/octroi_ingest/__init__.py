@@ -37,7 +37,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 __all__ = ["IngestClient", "DEFAULT_INGEST_URL"]
 
-DEFAULT_INGEST_URL = "https://ingest.octroi.ai"
+DEFAULT_INGEST_URL = "https://ingest.octroi.sh"
 
 _log = logging.getLogger("octroi")
 

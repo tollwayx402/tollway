@@ -1,7 +1,7 @@
 {
   "name": "@octroi/ingest",
   "version": "0.1.0",
-  "description": "Octroi cloud event client: batches events to ingest.octroi.ai, and polls signed remote config.",
+  "description": "Octroi cloud event client: batches events to ingest.octroi.sh, and polls signed remote config.",
   "license": "BUSL-1.1",
   "type": "module",
   "files": [

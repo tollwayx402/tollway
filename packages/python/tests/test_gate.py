@@ -72,7 +72,7 @@ class TestChallenge:
         assert result.body["errorDetail"] == {
             "code": "payment_required",
             "message": "This route costs 0.004000 USDC.",
-            "doc": "https://octroi.ai/docs/errors#payment_required",
+            "doc": "https://octroi.sh/docs/errors#payment_required",
         }
         assert result.body["accepts"][0]["maxAmountRequired"] == "4000"
         assert [e["type"] for e in events] == ["challenge.issued"]

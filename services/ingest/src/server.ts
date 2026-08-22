@@ -223,7 +223,7 @@ export function createServer(options: ServerOptions): Express {
 
 /** Same error envelope the SDK uses (§10). */
 function errorBody(code: string, message: string) {
-  return { error: { code, message, doc: `https://octroi.ai/docs/errors#${code}` } };
+  return { error: { code, message, doc: `https://octroi.sh/docs/errors#${code}` } };
 }
 
 function isEvent(value: unknown): value is OctroiEvent {

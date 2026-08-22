@@ -2,7 +2,7 @@
  * The error reference, served at GET /docs/errors.
  *
  * Every 4xx/5xx body the SDK emits links to
- * `https://octroi.ai/docs/errors#<code>` (§10). Serving the page from the
+ * `https://octroi.sh/docs/errors#<code>` (§10). Serving the page from the
  * service means the links resolve the moment anything is deployed behind that
  * domain — a docs site can replace this later without changing a single
  * emitted URL.

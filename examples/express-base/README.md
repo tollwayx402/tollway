@@ -33,7 +33,7 @@ with the price, the network, and where to pay:
   "errorDetail": {
     "code": "payment_required",
     "message": "This route costs 0.004000 USDC.",
-    "doc": "https://octroi.ai/docs/errors#payment_required"
+    "doc": "https://octroi.sh/docs/errors#payment_required"
   }
 }
 ```

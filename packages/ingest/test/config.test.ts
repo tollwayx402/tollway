@@ -170,7 +170,7 @@ describe("polling", () => {
     const fetchImpl = (async () => {
       call += 1;
       if (call === 1) return new Response(JSON.stringify(await signedConfig(signer)), { status: 200 });
-      throw new TypeError("ENOTFOUND ingest.octroi.ai");
+      throw new TypeError("ENOTFOUND ingest.octroi.sh");
     }) as unknown as typeof fetch;
 
     const client = createRemoteConfigClient({

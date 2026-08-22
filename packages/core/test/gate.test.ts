@@ -82,7 +82,7 @@ describe("challenge", () => {
     expect(body.errorDetail).toEqual({
       code: "payment_required",
       message: "This route costs 0.004000 USDC.",
-      doc: "https://octroi.ai/docs/errors#payment_required",
+      doc: "https://octroi.sh/docs/errors#payment_required",
     });
     expect(readErrorDetail(body)?.code).toBe("payment_required");
     expect(body.accepts).toHaveLength(1);
@@ -275,7 +275,7 @@ describe("rejections", () => {
     expect(result.status).toBe(402);
     expect(result.code).toBe("invalid_payment");
     expect(body.error).toBe("invalid_payment");
-    expect(body.errorDetail.doc).toBe("https://octroi.ai/docs/errors#invalid_payment");
+    expect(body.errorDetail.doc).toBe("https://octroi.sh/docs/errors#invalid_payment");
     // Re-advertised so the agent can retry immediately.
     expect(body.accepts).toHaveLength(1);
     expect(events.map((e) => e.type)).toEqual(["toll.rejected"]);

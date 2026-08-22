@@ -71,7 +71,7 @@ docker run -p 8787:8787 -v octroi-data:/data \
 **Note: the Dockerfile has not been built on this machine (no Docker here) —
 verify the first build before pointing DNS at it.**
 
-Point `ingest.octroi.ai` (and `octroi.ai`, until a real docs site exists) at
+Point `ingest.octroi.sh` (and `octroi.sh`, until a real docs site exists) at
 it behind any TLS-terminating proxy. `GET /docs/errors` serves the §10 error
 reference, so the `doc` links in every SDK error body resolve the moment DNS
 does. Events are JSONL under `/data` — that volume IS the database; snapshot it

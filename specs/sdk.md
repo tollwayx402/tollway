@@ -121,7 +121,7 @@ All events: `{ id, v: 1, type, ts, route, merchant?, data }`. Types:
 - `request.failed` — upstream handler errored after payment (data: receipt_id, status) → refund candidate
 - `gate.error` — facilitator unreachable etc. (data: mode applied)
 
-Delivery: `onEvent` callback always fires synchronously-safe (never blocks the request path; internal queue). With `apiKey`, the BSL ingest client batches events to `ingest.octroi.ai` (HTTPS, gzip, at-least-once, 5s flush or 100 events, disk-less retry buffer capped at 10k events, drop-oldest with `gate.error` emitted on overflow).
+Delivery: `onEvent` callback always fires synchronously-safe (never blocks the request path; internal queue). With `apiKey`, the BSL ingest client batches events to `ingest.octroi.sh` (HTTPS, gzip, at-least-once, 5s flush or 100 events, disk-less retry buffer capped at 10k events, drop-oldest with `gate.error` emitted on overflow).
 
 ## 8. Cloud ingest API (dashboard contract)
 
@@ -139,7 +139,7 @@ In-SDK, config-flag simple: per-IP and per-payer challenge rate limits (token bu
 ## 10. Errors, observability, DX
 
 - Structured logger injection (`logger` option), silent by default.
-- Every 4xx/5xx body: `{ error: { code, message, doc: "https://octroi.ai/docs/errors#<code>" } }`.
+- Every 4xx/5xx body: `{ error: { code, message, doc: "https://octroi.sh/docs/errors#<code>" } }`.
 - `npx @octroi/gate doctor` — checks config, facilitator reachability, clock skew, and fires a testnet self-payment end-to-end.
 - Examples repo: Express + Base in 20 lines; FastAPI + Base; Hono on Cloudflare Workers.
 

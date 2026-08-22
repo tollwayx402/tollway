@@ -1,6 +1,6 @@
 import type { RejectCode } from "./types.js";
 
-export const DOC_BASE = "https://octroi.ai/docs/errors#";
+export const DOC_BASE = "https://octroi.sh/docs/errors#";
 
 /** Every 4xx/5xx body the SDK produces (§10). */
 export interface ErrorBody {

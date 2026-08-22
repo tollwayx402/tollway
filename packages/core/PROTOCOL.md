@@ -65,7 +65,7 @@ An unpaid request gets `402` with `content-type: application/json` and:
   "errorDetail": {
     "code": "payment_required",
     "message": "This route costs 0.004000 USDC.",
-    "doc": "https://octroi.ai/docs/errors#payment_required"
+    "doc": "https://octroi.sh/docs/errors#payment_required"
   }
 }
 ```
